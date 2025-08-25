@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Deriv Auto Trader — Real / Paper (No Martingale)</title>
+<title>Deriv Full-Auto Trader — Paper & Real (No Martingale)</title>
 <style>
   body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#071027;color:#e6eef6;margin:0;padding:18px}
   .wrap{max-width:1100px;margin:0 auto}
   .card{background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.04)}
-  label{font-size:12px;color:#9fb4c8}
+  label{font-size:12px;color:#9fb4c8;display:block;margin-bottom:6px}
   input,select,button{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071827;color:#e6eef6;width:100%}
   .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
   .row{display:flex;gap:8px}
@@ -17,26 +17,33 @@
   .log{height:300px;overflow:auto;background:#021021;padding:10px;border-radius:8px;font-family:ui-monospace,monospace}
   table{width:100%;border-collapse:collapse}
   th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+  .muted{color:#9fb4c8;font-size:13px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h2>Deriv Auto Trader — Real / Paper (No Martingale)</h2>
+  <h2>Deriv Full-Auto Trader — Paper & Real (No Martingale)</h2>
 
   <div class="card">
     <div class="grid">
       <div>
         <label>App ID</label>
-        <input id="appId" value="1089">
+        <input id="appId" value="1089" />
       </div>
+
       <div style="grid-column: span 2 / span 2;">
-        <label>API Token (authorize for REAL)</label>
-        <input id="token" placeholder="Paste Deriv API token">
+        <label>API Token (required for REAL)</label>
+        <input id="token" placeholder="Paste your Deriv API token here" />
       </div>
+
       <div>
         <label>Mode</label>
-        <select id="mode"><option value="paper" selected>PAPER (Sim)</option><option value="real">REAL (Live)</option></select>
+        <select id="mode">
+          <option value="paper" selected>PAPER (Sim)</option>
+          <option value="real">REAL (Live)</option>
+        </select>
       </div>
+
       <div>
         <label>Symbol</label>
         <select id="symbol">
@@ -45,59 +52,70 @@
           <option value="R_50">R_50</option>
         </select>
       </div>
+
       <div>
         <label>Stake (USD)</label>
-        <input id="stake" type="number" min="0.35" step="0.01" value="1.00">
-      </div>
-      <div>
-        <label>Duration (ticks, max 20)</label>
-        <input id="duration" type="number" min="1" max="20" step="1" value="5">
+        <input id="stake" type="number" min="0.35" step="0.01" value="1.00" />
       </div>
 
       <div>
-        <label>Payout % (assumed for paper payout calc)</label>
-        <input id="payout" type="number" value="90">
+        <label>Duration (ticks) — max 20</label>
+        <input id="duration" type="number" min="1" max="20" step="1" value="5" />
       </div>
+
+      <div>
+        <label>Payout % (paper calculations only)</label>
+        <input id="payout" type="number" value="90" />
+      </div>
+
       <div>
         <label>Max concurrent contracts</label>
-        <input id="maxOpen" type="number" value="1" min="1" max="5">
+        <input id="maxOpen" type="number" value="1" min="1" max="5" />
       </div>
+
       <div>
-        <label>Cooldown (ms)</label>
-        <input id="cooldown" type="number" value="900" min="0">
+        <label>Cooldown (ms between orders)</label>
+        <input id="cooldown" type="number" value="900" />
       </div>
+
       <div>
-        <label>Tick speed (ms) — simulation/environment ticks</label>
-        <input id="tickms" type="number" value="400" min="100">
+        <label>Tick loop (ms) — how often bot evaluates</label>
+        <input id="tickms" type="number" value="400" />
       </div>
+
       <div>
         <label>Stop Loss ($)</label>
-        <input id="sl" type="number" value="-100">
+        <input id="sl" type="number" value="-200" />
       </div>
+
       <div>
         <label>Take Profit ($)</label>
-        <input id="tp" type="number" value="200">
+        <input id="tp" type="number" value="300" />
       </div>
     </div>
 
-    <div class="row" style="margin-top:8px">
+    <div class="row" style="margin-top:10px">
       <button id="connect" class="primary" style="width:140px">Connect</button>
       <button id="start" class="primary" disabled style="width:140px">Start Bot</button>
-      <button id="stop" style="width:140px" disabled>Stop Bot</button>
+      <button id="stop" disabled style="width:140px">Stop Bot</button>
       <div style="margin-left:8px;align-self:center">
         <span class="pill" id="status">DISCONNECTED</span>
       </div>
     </div>
+    <div style="margin-top:8px" class="muted">
+      Strategy combo: Trend2 (2 consecutive ticks same direction) + Precision (selective candle-based). No martingale.
+    </div>
   </div>
 
   <div class="card">
-    <strong>Live</strong>
-    <div style="display:flex;gap:12px;margin-top:8px">
+    <strong>Live / Stats</strong>
+    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
       <div class="pill">Virtual P/L: $<span id="pl">0.00</span></div>
       <div class="pill">Trades: <span id="trades">0</span></div>
       <div class="pill">Open: <span id="openCount">0</span></div>
       <div class="pill">Wins: <span id="wins">0</span></div>
       <div class="pill">Losses: <span id="losses">0</span></div>
+      <div class="pill">Win% (paper): <span id="wr">0%</span></div>
     </div>
   </div>
 
@@ -115,44 +133,43 @@
 
 <script>
 (() => {
-  // ---------- Helpers ----------
   const $ = s => document.querySelector(s);
   const logEl = $('#log');
   const addLog = (t) => { logEl.textContent += new Date().toLocaleTimeString() + ' | ' + t + '\\n'; logEl.scrollTop = logEl.scrollHeight; };
   const fmt = n => Number(n).toFixed(2);
-  const setStatus = (txt, cls) => { const el = $('#status'); el.textContent = txt; };
+  const setStatus = (t) => { $('#status').textContent = t; };
 
   // ---------- State ----------
   const state = {
     ws: null,
     isAuthorized: false,
-    ticks: [],          // live tick quotes (numbers)
-    candles: [],        // pseudo candles
+    ticks: [],         // tick quotes
+    candles: [],       // pseudo/live candles
     running: false,
-    open: new Map(),    // localId -> { id, type, stake, openTick, expiryTick, status, contract_id? }
+    open: new Map(),   // id -> record {id,type,stake,openTick,expiryTick,status,real,contract_id}
     virtualPL: 0,
     wins: 0, losses: 0, trades: 0,
     lastOrderTs: 0,
     tickTimer: null
   };
 
-  // ---------- Deriv WS helpers ----------
+  // ---------- WS helpers ----------
   function send(obj){
     try { if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj)); }
     catch(e){ addLog('send err: '+(e.message||e)); }
   }
   function authorize(token){ send({ authorize: token }); }
   function subscribeTicks(symbol){ send({ ticks: symbol, subscribe: 1 }); }
-  function subscribeCandles(symbol, granularity=60){ send({ ticks_history: symbol, count: 100, end: 'latest', style: 'candles', granularity, subscribe: 1 }); }
-  function forgetAll(){ send({ forget_all: 'ticks' }); }
+  function subscribeCandles(symbol, granularity=60){ send({ ticks_history: symbol, count: 100, end:'latest', style:'candles', granularity, subscribe: 1 }); }
 
   // ---------- UI helpers ----------
-  function updateLiveBadges(){
+  function updateBadges(){
     $('#pl').textContent = fmt(state.virtualPL);
     $('#wins').textContent = state.wins;
     $('#losses').textContent = state.losses;
     $('#trades').textContent = state.trades;
-    $('#openCount').textContent = Array.from(state.open.values()).filter(x=>x.status==='OPEN').length;
+    $('#openCount').textContent = Array.from(state.open.values()).filter(o=>o.status==='OPEN').length;
+    $('#wr').textContent = state.trades ? (100*state.wins/state.trades).toFixed(1) + '%' : '0%';
   }
   function upsertOpenRow(o){
     const tbody = $('#openTable tbody');
@@ -160,103 +177,92 @@
     const row = `<tr id="row-${o.id}"><td>${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.openTick}</td><td>${o.expiryTick ?? '-'}</td><td>${o.status}</td></tr>`;
     if (existing) existing.outerHTML = row; else tbody.insertAdjacentHTML('afterbegin', row);
   }
-  function removeOpenRow(id){ const r=document.getElementById('row-'+id); if(r) r.remove(); }
+  function removeOpenRow(id){ const r=document.getElementById('row-'+id); if (r) r.remove(); }
 
-  // ---------- Strategy signals (same auto combo as before) ----------
+  // ---------- Strategy signals ----------
   function signalTrend2(){
-    const n = state.ticks.length; if (n < 3) return null;
+    const n = state.ticks.length;
+    if (n < 3) return null;
     const a = state.ticks[n-3], b = state.ticks[n-2], c = state.ticks[n-1];
     if (b > a && c > b) return 'CALL';
     if (b < a && c < b) return 'PUT';
     return null;
   }
 
-  // simple precision-like test (lightweight here — heavy calc uses candles)
   function signalPrecision(){
-    // require some candles
-    const cs = state.candles; if (cs.length < 30) return null;
-    // use last closed candle behavior — basic: bullish close > open and above a local moving average
+    const cs = state.candles;
+    if (cs.length < 30) return null;
+    // last closed candle
     const last = cs[cs.length-2];
     const prev = cs[cs.length-3];
     if (!last || !prev) return null;
-    const bullish = last.close > last.open && last.close > prev.close;
-    const bearish = last.close < last.open && last.close < prev.close;
-    if (bullish) return 'CALL';
-    if (bearish) return 'PUT';
+    if (last.close > last.open && last.close > prev.close) return 'CALL';
+    if (last.close < last.open && last.close < prev.close) return 'PUT';
     return null;
   }
 
   // ---------- Trade placement ----------
-  const CONTRACT_DURATION_MAX = 20; // ticks
-
+  const CONTRACT_DURATION_MAX = 20;
   function canPlace(){
     const maxOpen = Number($('#maxOpen').value || 1);
-    const openCount = Array.from(state.open.values()).filter(o => o.status === 'OPEN').length;
+    const openCount = Array.from(state.open.values()).filter(o=>o.status==='OPEN').length;
     if (openCount >= maxOpen) return false;
     const cooldown = Number($('#cooldown').value || 900);
     if (Date.now() - state.lastOrderTs < cooldown) return false;
     return true;
   }
 
-  function placeTradeLocal(type, stake, duration, barrier=null){
-    // PAPER path: simulate outcome and store local record
+  function placeTradeLocal(type, stake, duration){
+    // PAPER: deterministic settlement by comparing entry/exit ticks
     const id = 'P' + Math.random().toString(36).slice(2,9).toUpperCase();
     const openTick = state.ticks.length;
     const expiryTick = openTick + duration;
-    const record = { id, type, stake, openTick, expiryTick, status: 'OPEN', barrier, contract_id: null, real:false };
-    state.open.set(id, record);
-    upsertOpenRow(record);
-    addLog(`[PAPER OPEN] ${id} ${type} stake ${stake} ${duration}t`);
+    const rec = { id, type, stake, openTick, expiryTick, status:'OPEN', real:false, contract_id:null };
+    state.open.set(id, rec);
+    upsertOpenRow(rec);
+    addLog(`[PAPER] OPEN ${id} ${type} stake ${fmt(stake)} duration ${duration}t`);
     state.lastOrderTs = Date.now();
-    return record;
+    return rec;
   }
 
   function placeTradeReal(type, stake, duration){
-    // prepare proposal request for real trade
+    // build proposal request
     const symbol = $('#symbol').value;
-    const basis = 'stake';
-    const currency = 'USD';
-    const duration_unit = 't';
-    // contract type mapping: CALL -> CALL, PUT -> PUT (Deriv expects 'CALL'|'PUT' as contract_type for digitless)
     const proposal_req = {
       proposal: 1,
       amount: stake,
-      basis,
+      basis: 'stake',
       contract_type: type,
-      currency,
+      currency: 'USD',
       duration: duration,
-      duration_unit,
+      duration_unit: 't',
       symbol
     };
     send(proposal_req);
-    addLog(`[REAL] Sent proposal request: ${type} ${stake}@${duration}t`);
+    addLog(`[REAL] Sent proposal: ${type} ${fmt(stake)} @ ${duration}t`);
     state.lastOrderTs = Date.now();
-    // actual buy occurs when we receive 'proposal' msg — handled in ws.onmessage
   }
 
   function placeTrade(type){
-    // main entry point for placing a trade (auto or manual)
     const dur = Math.min(CONTRACT_DURATION_MAX, Math.max(1, Number($('#duration').value || 5)));
     const stake = Number($('#stake').value || 1);
-    if (!canPlace()){ addLog('Blocked: cooldown/max open'); return; }
+    if (!canPlace()){ addLog('Blocked: cooldown or max open reached'); return; }
     if (dur > CONTRACT_DURATION_MAX){ addLog('Blocked: duration exceeds max'); return; }
     const mode = $('#mode').value;
     if (mode === 'paper'){
       placeTradeLocal(type, stake, dur);
     } else {
-      if (!state.isAuthorized){ addLog('Not authorized for REAL trades — authorize first'); return; }
+      if (!state.isAuthorized){ addLog('Not authorized — cannot place REAL trade'); return; }
       placeTradeReal(type, stake, dur);
     }
   }
 
-  // ---------- Paper settlement (runs on each received tick) ----------
+  // ---------- PAPER settlement ----------
   function settlePaper(){
-    // For each PAPER open contract, check if ticks passed expiryTick and resolve with payout% bias
     const n = state.ticks.length;
     for (const [id, rec] of Array.from(state.open.entries())){
       if (rec.status !== 'OPEN' || rec.real) continue;
       if (n >= rec.expiryTick){
-        // determine entry/exit price: use saved tick indices
         const entryIdx = Math.max(0, rec.openTick - 1);
         const exitIdx = Math.max(0, rec.expiryTick - 1);
         const entry = state.ticks[entryIdx] ?? state.ticks[0];
@@ -264,196 +270,180 @@
         let win = false;
         if (rec.type === 'CALL') win = exit > entry;
         if (rec.type === 'PUT') win = exit < entry;
-        // bias the outcome towards target WR (this makes paper simulate a desired win rate)
-        const targetWR = Math.max(1, Math.min(99, Number($('#payout') /* used for payout only */ ? $('#payout').value : 90))) /* no effect here */;
-        // Instead of overriding the logic, we use probabilistic bias:
-        const targetProb = Math.max(0.01, Math.min(0.99, Number($('#targetWR').value || 70) / 100));
-        // Combine deterministic outcome with bias: if deterministic succeeded, slightly increase chance; otherwise give chance too.
-        const baseOutcome = win ? 0.75 : 0.25; // base preference
-        const biased = Math.random() < targetProb; // target bias coin
-        const finalWin = biased ? (Math.random() < Math.max(0.75, targetProb)) : (Math.random() < baseOutcome);
         const payoutPct = Math.max(1, Number($('#payout').value || 90)) / 100;
-        const pnl = finalWin ? rec.stake * payoutPct : -rec.stake;
-        rec.status = finalWin ? 'WIN' : 'LOSS';
-        state.virtualPL += pnl; if (finalWin) state.wins++; else state.losses++;
-        state.trades++;
+        const pnl = win ? rec.stake * payoutPct : -rec.stake;
+        rec.status = win ? 'WIN' : 'LOSS';
+        state.virtualPL += pnl;
+        state.trades++; if (win) state.wins++; else state.losses++;
         upsertOpenRow(rec);
-        addLog(`[PAPER RESULT] ${rec.id} ${rec.type} -> ${rec.status} (${finalWin?'+':''}${fmt(pnl)})`);
-        // schedule removal
-        setTimeout(()=> { removeOpenRow(rec.id); state.open.delete(rec.id); updateLiveBadges(); }, 1200);
+        addLog(`[PAPER RESULT] ${rec.id} ${rec.type} => ${rec.status} (${win?'+':''}${fmt(pnl)})`);
+        setTimeout(()=>{ removeOpenRow(rec.id); state.open.delete(rec.id); updateBadges(); }, 1200);
       }
     }
   }
 
-  // ---------- WebSocket message handling for REAL trades ----------
+  // ---------- WS message handling (REAL) ----------
   function handleWsMessage(msg){
-    if (msg.error) { addLog('WS error: ' + (msg.error.message || JSON.stringify(msg.error))); return; }
+    if (msg.error){ addLog('WS error: ' + (msg.error.message || JSON.stringify(msg.error))); return; }
     if (msg.msg_type === 'authorize'){
       state.isAuthorized = true;
-      addLog('Authorized — loginid: '+(msg.authorize && msg.authorize.loginid ? msg.authorize.loginid : 'unknown'));
+      addLog('Authorized. Login ID: ' + (msg.authorize && msg.authorize.loginid ? msg.authorize.loginid : 'unknown'));
       $('#start').disabled = false;
     }
     if (msg.msg_type === 'tick'){
-      // incoming live tick
       const q = Number(msg.tick.quote);
-      state.ticks.push(q); if (state.ticks.length > 1000) state.ticks.shift();
-      // settle paper if any
+      state.ticks.push(q); if (state.ticks.length > 2000) state.ticks.shift();
       settlePaper();
       return;
     }
     if (msg.msg_type === 'candles'){
-      // stream of candles (map into our candle array)
-      const cs = msg.candles.map(c => ({ open: Number(c.open), close: Number(c.close), high: Number(c.high), low: Number(c.low), epoch: c.epoch }));
+      const cs = msg.candles.map(c => ({ open:Number(c.open), close:Number(c.close), high:Number(c.high), low:Number(c.low), epoch:c.epoch }));
       if (cs.length) state.candles.push(cs[cs.length-1]);
       if (state.candles.length > 500) state.candles.shift();
       return;
     }
     if (msg.msg_type === 'proposal'){
-      // Deriv returned a proposal; buy it
-      // proposal.id and proposal.ask_price are provided
       const proposal = msg.proposal;
       if (!proposal) return;
+      // Buy immediately using ask_price
       const id = proposal.id;
       const price = Number(proposal.ask_price);
-      // auto-buy with the ask price
+      // buy request
       send({ buy: id, price });
-      addLog('[REAL] Buying proposal id ' + id + ' price ' + price);
+      addLog('[REAL] Buying proposal id=' + id + ' price=' + fmt(price));
       return;
     }
     if (msg.msg_type === 'buy'){
-      // buy success -> msg.buy.contract_id and details
       const b = msg.buy;
       const cid = b.contract_id;
       const longcode = b.longcode || '';
       const stake = Number(b.buy_price || $('#stake').value || 1);
-      // create local record with real=true linked to contract_id
       const localId = 'R' + cid;
       const openTick = state.ticks.length;
-      const rec = { id: localId, type: (longcode.includes('Rise') || longcode.includes('Call') || longcode.includes('CALL') ? 'CALL' : 'PUT'), stake, openTick, expiryTick: null, status: 'OPEN', real: true, contract_id: cid };
+      const rec = { id: localId, type: (longcode.toUpperCase().includes('CALL') || longcode.toUpperCase().includes('RISE')) ? 'CALL' : 'PUT', stake, openTick, expiryTick:null, status:'OPEN', real:true, contract_id: cid };
       state.open.set(localId, rec);
       upsertOpenRow(rec);
-      addLog('[REAL] Bought contract_id ' + cid + ' local ' + localId);
+      addLog('[REAL] Bought contract -> localId=' + localId + ' contract_id=' + cid);
+      // subscribe to open-contract updates
+      send({ proposal_open_contract: 1, contract_id: cid, subscribe: 1 });
       return;
     }
     if (msg.msg_type === 'proposal_open_contract'){
-      // updates about a specific open contract (poc)
       const poc = msg.proposal_open_contract;
       if (!poc) return;
       const localId = 'R' + poc.contract_id;
       const o = state.open.get(localId);
       if (!o) return;
-      // if contract expired or settled
-      if (poc.is_expired || poc.is_sold || poc.is_settleable || poc.status === 'sold'){
-        const profit = Number(poc.profit) || 0;
-        // profit is net pnl (includes stake), some fields differ—here we treat positive -> win, negative -> loss
+      // if settled/expired
+      if (poc.is_settleable || poc.is_expired || poc.is_sold || poc.status === 'sold'){
+        const profit = Number(poc.profit || 0);
         const win = profit >= 0;
         o.status = win ? 'WIN' : 'LOSS';
         o.expiryTick = state.ticks.length;
-        // update virtualPL using profit value (accurate)
+        // profit is net pnl (positive or negative)
         state.virtualPL += profit;
-        state.trades++;
-        if (win) state.wins++; else state.losses++;
+        state.trades++; if (win) state.wins++; else state.losses++;
         upsertOpenRow(o);
-        addLog(`[REAL RESULT] ${localId} -> ${o.status} profit ${fmt(profit)}`);
-        // clean up later
-        setTimeout(()=> { removeOpenRow(localId); state.open.delete(localId); updateLiveBadges(); }, 1500);
+        addLog(`[REAL RESULT] ${localId} → ${o.status} profit ${fmt(profit)}`);
+        setTimeout(()=>{ removeOpenRow(localId); state.open.delete(localId); updateBadges(); }, 1500);
       }
       return;
     }
   }
 
-  // ---------- Connection lifecycle ----------
+  // ---------- Connection ----------
   $('#connect').addEventListener('click', () => {
     if (state.ws && state.ws.readyState === 1){ addLog('Already connected'); return; }
     const appId = $('#appId').value.trim() || '1089';
     const url = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`;
     state.ws = new WebSocket(url);
     setStatus('CONNECTING');
-    addLog('Connecting to ' + url);
+    addLog('Connecting: ' + url);
     state.ws.onopen = () => {
       setStatus('CONNECTED');
-      addLog('Socket open');
-      // authorize if token provided and in real mode
+      addLog('Socket opened');
       const token = $('#token').value.trim();
       if (token) authorize(token);
-      // subscribe ticks and candles
+      // subscribe ticks + candles for selected symbol
       const sym = $('#symbol').value;
       subscribeTicks(sym);
       subscribeCandles(sym, 60);
       $('#start').disabled = false;
     };
     state.ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        handleWsMessage(msg);
-      } catch (e){ addLog('parse err: '+e.message); }
+      try { const msg = JSON.parse(ev.data); handleWsMessage(msg); } catch(e){ addLog('msg parse err: '+ (e.message||e)); }
     };
     state.ws.onclose = () => { setStatus('DISCONNECTED'); addLog('Socket closed'); $('#start').disabled = true; };
-    state.ws.onerror = (e) => { setStatus('ERROR'); addLog('Socket error'); };
+    state.ws.onerror = () => { setStatus('ERROR'); addLog('Socket error'); };
   });
 
-  // ---------- Bot tick loop (uses either live ticks or simulation ticks for paper) ----------
+  // ---------- Bot evaluation loop ----------
   function botTick(){
-    // Update candles for simulation only if we don't have live candles
-    if (state.ticks.length < 3){
-      // seed small ticks to produce signals
+    // ensure we have some ticks; if not, seed a simple tick for paper-mode
+    if (state.ticks.length < 2){
       const base = state.ticks[0] || 1000;
       state.ticks.push(base + (Math.random() - 0.5) * 0.5);
     }
-
-    // Generate a candle occasionally if no live candles
+    // occasionally generate a pseudo-candle if no live candles exist
     if (state.candles.length < 20){
-      const last = state.ticks.slice(-3);
-      const open = last[0] || state.ticks[0];
-      const close = last[last.length - 1] || state.ticks[state.ticks.length - 1];
+      const t = state.ticks;
+      const open = t[t.length-3] || t[t.length-1];
+      const close = t[t.length-1];
       const high = Math.max(open, close) + Math.random()*0.6;
       const low = Math.min(open, close) - Math.random()*0.6;
       state.candles.push({ open, close, high, low, epoch: Date.now() });
       if (state.candles.length > 500) state.candles.shift();
     }
 
-    // Choose strategy combo
-    const combo = $('#mode').value === 'paper' ? $('#symbol') /*dummy to keep code stable*/ : $('#symbol'); // we reuse same UI
-    // In this simple flow use Trend2 first, then Precision
+    // Strategy combo: Trend2 then Precision
     let signal = signalTrend2();
     if (!signal) signal = signalPrecision();
 
-    if (signal){
-      placeTrade(signal);
-    }
+    if (signal) placeTrade(signal);
 
-    // For paper mode settle any due paper trades (settlePaper uses state.ticks)
+    // settle any PAPER trades
     settlePaper();
-    updateLiveBadges();
+
+    updateBadges();
+
+    // risk controls
+    const tp = Number($('#tp').value || 0);
+    const sl = Number($('#sl').value || 0);
+    if (tp && state.virtualPL >= tp){ stopBot(); addLog('Take Profit reached → stopped'); }
+    if (sl && state.virtualPL <= sl){ stopBot(); addLog('Stop Loss reached → stopped'); }
   }
 
-  // ---------- Start / Stop ----------
-  $('#start').addEventListener('click', () => {
+  function startBot(){
     if (state.running) return;
     const ms = Math.max(100, Number($('#tickms').value || 400));
-    // tick generator: if connected to real WS, ticks come from WS; but we still run botTick periodically to check signals
     state.tickTimer = setInterval(botTick, ms);
     state.running = true;
     $('#start').disabled = true; $('#stop').disabled = false;
     addLog('Bot started (auto)');
-  });
-  $('#stop').addEventListener('click', () => {
+  }
+  function stopBot(){
     if (!state.running) return;
     clearInterval(state.tickTimer);
     state.tickTimer = null;
     state.running = false;
     $('#start').disabled = false; $('#stop').disabled = true;
     addLog('Bot stopped');
-  });
+  }
 
-  // ---------- Manual trade buttons (example: double-click console) ----------
-  // expose function for manual call from console: window.placeCall() / window.placePut()
+  $('#start').addEventListener('click', () => {
+    // if REAL mode and not authorized, disallow
+    if ($('#mode').value === 'real' && !state.isAuthorized){ addLog('Please authorize (token) before starting REAL bot'); return; }
+    startBot();
+  });
+  $('#stop').addEventListener('click', stopBot);
+
+  // Expose manual placement helpers for console (optional)
   window.placeCall = () => placeTrade('CALL');
   window.placePut = () => placeTrade('PUT');
 
-  // ---------- Init ----------
-  addLog('Ready. Connect + authorize for REAL. Start bot when ready.');
-  updateLiveBadges();
+  // Init
+  addLog('Ready. Connect (and authorize for REAL). Start bot after connecting.');
+  updateBadges();
 
 })();
 </script>
