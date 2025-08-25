@@ -1,486 +1,188 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Deriv API Strategy Bot (Browser, WebSocket)</title>
-  <style>
-    :root{--bg:#0f172a;--card:#111827;--muted:#94a3b8;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--txt:#e5e7eb;--accent:#22d3ee}
-    *{box-sizing:border-box} body{margin:0;background:linear-gradient(120deg,#0b1023,#0a0f1f);color:var(--txt);font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
-    h1{font-size:22px;margin:0 0 8px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .card{background:rgba(255,255,255,.04);backdrop-filter: blur(6px);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    .row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-    label{font-size:12px;color:var(--muted)}
-    input,select,button,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0b1222;color:var(--txt)}
-    button{cursor:pointer;font-weight:600}
-    button.primary{background:linear-gradient(135deg,#22d3ee,#3b82f6);border:0;color:white}
-    button.danger{background:linear-gradient(135deg,#ef4444,#f59e0b);border:0;color:white}
-    .flex{display:flex;gap:8px;align-items:center}
-    .badges span{display:inline-block;margin:2px 6px 0 0;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.12);font-size:12px;color:var(--muted)}
-    .log{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;height:340px;overflow:auto;background:#030712;border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:12px;white-space:pre-wrap}
-    .pill{padding:2px 8px;border-radius:999px;font-size:12px}
-    .pill.ok{background:rgba(22,163,74,.15);color:#86efac;border:1px solid rgba(22,163,74,.35)}
-    .pill.warn{background:rgba(245,158,11,.15);color:#fde68a;border:1px solid rgba(245,158,11,.35)}
-    .pill.err{background:rgba(239,68,68,.15);color:#fecaca;border:1px solid rgba(239,68,68,.35)}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08)}
-    .table th{color:var(--muted);font-weight:600;text-align:left}
-    .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt24{margin-top:24px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Full‑Auto PUT/CALL Paper Bot — 70% win bias</title>
+<style>
+  :root{--bg:#071026;--card:#071A2B;--txt:#E6EEF6;--muted:#9FB4C8;--ok:#22c55e;--warn:#f59e0b}
+  *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,var(--bg),#05101a);color:var(--txt);font:14px Inter,system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:20px auto;padding:16px}
+  h1{margin:0 0 8px;font-size:20px}
+  .card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px;margin-bottom:12px}
+  .row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  label{font-size:12px;color:var(--muted)}
+  input,select,button{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071827;color:var(--txt)}
+  button.primary{background:linear-gradient(90deg,#22d3ee,#3b82f6);border:0;color:#032;font-weight:700}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04)}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+  .log{height:300px;overflow:auto;background:#02060a;border-radius:8px;padding:8px;font-family:ui-monospace,monospace}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Deriv API Strategy Bot <span class="pill warn" id="status">DISCONNECTED</span></h1>
+<div class="wrap">
+  <h1>Full‑Auto PUT/CALL — Paper Bot <span class="pill">70% win bias</span></h1>
 
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>App ID</label>
-          <input id="appId" placeholder="e.g. 1089 (use your own in production)" value="1089" />
-        </div>
-        <div>
-          <label>API Token</label>
-          <input id="tokenInput" placeholder="Paste your Deriv API token" />
-        </div>
-        <div>
-          <label>Symbol</label>
-          <select id="symbol">
-            <option value="R_100">Volatility 100 (R_100)</option>
-            <option value="R_75">Volatility 75</option>
-            <option value="R_50">Volatility 50</option>
-            <option value="R_25">Volatility 25</option>
-            <option value="R_10">Volatility 10</option>
-          </select>
-        </div>
-        <div>
-          <label>Stake</label>
-          <input id="stake" type="number" min="0.35" step="0.01" value="1.00" />
-        </div>
-        <div>
-          <label>Duration (ticks)</label>
-          <input id="duration" type="number" min="1" max="20" step="1" value="5" />
-        </div>
-        <div>
-          <label>Paper Trade (fake)</label>
-          <select id="paper">
-            <option value="1" selected>ON</option>
-            <option value="0">OFF (real)</option>
-          </select>
-        </div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Stake</label>
+        <input id="stake" type="number" step="0.01" value="1.00" />
       </div>
-
-      <div class="row mt12">
-        <div>
-          <label>Strategy</label>
-          <select id="strategy">
-            <option value="trend2">Rise/Fall — Trend x2</option>
-            <option value="differs">Digit Differs</option>
-            $1
-            <option value="smart80">Precision (EMA+RSI+ATR)</option>
-          </select>
-        </div>
-        <div id="onlyBox">
-          <label>Only Up/Down (trend2)</label>
-          <select id="only">
-            <option value="both" selected>Both</option>
-            <option value="up">Only Up</option>
-            <option value="down">Only Down</option>
-          </select>
-        </div>
-        <div id="digitBox" style="display:none">
-          <label>Forbidden Digit (Differs)</label>
-          <select id="forbidDigit"></select>
-        </div>
-        <div id="pinBox" style="display:none">
-          <label>Pin‑bar Wick Ratio ≥</label>
-          <input id="pinRatio" type="number" min="1" step="0.1" value="1.8" />
-        </div>
-        <div>
-          <label>Take Profit ($)</label>
-          <input id="tp" type="number" step="0.01" value="20" />
-        </div>
-        <div>
-          <label>Stop Loss ($)</label>
-          <input id="sl" type="number" step="0.01" value="-20" />
-        </div>
+      <div>
+        <label>Payout % (win)</label>
+        <input id="payout" type="number" value="90" />
       </div>
-
-      <div class="flex mt16">
-        <button id="connectBtn" class="primary">Connect</button>
-        <button id="startBtn" class="primary" disabled>Start</button>
-        <button id="stopBtn" class="danger" disabled>Stop</button>
-        <div class="badges">
-          <span>Max ticks = 20</span>
-          <span id="balanceBadge">Virtual P/L: 0.00</span>
-        </div>
+      <div>
+        <label>Target Win Rate %</label>
+        <input id="targetWR" type="number" value="70" />
+      </div>
+      <div>
+        <label>Duration (s)</label>
+        <input id="duration" type="number" value="6" min="1" max="60" />
+      </div>
+      <div>
+        <label>Max Concurrent</label>
+        <input id="maxOpen" type="number" value="1" min="1" max="5" />
+      </div>
+      <div>
+        <label>Cooldown (s)</label>
+        <input id="cooldown" type="number" value="3" min="0" />
       </div>
     </div>
 
-    <div class="grid mt16">
-      <div class="card">
-        <div class="flex" style="justify-content:space-between;align-items:center">
-          <strong>Open Positions</strong>
-          <span class="pill ok" id="paperBadge">PAPER</span>
-        </div>
-        <table class="table mt8" id="openTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Stake</th>
-              <th>Entry</th>
-              <th>Expiry</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label>Strategy combo</label>
+        <select id="strategy">
+          <option value="trend2,smart80" selected>Auto: Trend2 + Precision (selective)</option>
+          <option value="trend2">Trend2 only</option>
+          <option value="smart80">Precision only</option>
+          <option value="random">Random trades only</option>
+        </select>
       </div>
-      <div class="card">
-        <strong>Log</strong>
-        <div class="log mt8" id="log"></div>
+      <div>
+        <label>Tick speed (ms)</label>
+        <input id="tickms" type="number" value="400" min="100" />
+      </div>
+      <div>
+        <label>Auto‑start</label>
+        <select id="autostart"><option value="1" selected>Yes</option><option value="0">No</option></select>
+      </div>
+      <div>
+        <label>Stop Loss ($)</label>
+        <input id="sl" type="number" value="-100" />
+      </div>
+      <div>
+        <label>Take Profit ($)</label>
+        <input id="tp" type="number" value="100" />
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="btnToggle" class="primary">Start</button>
       </div>
     </div>
   </div>
 
+  <div class="card">
+    <strong>Live Stats</strong>
+    <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
+      <div class="pill">Virtual P/L: $<span id="pl">0.00</span></div>
+      <div class="pill">Trades: <span id="trades">0</span></div>
+      <div class="pill">Wins: <span id="wins">0</span></div>
+      <div class="pill">Losses: <span id="losses">0</span></div>
+      <div class="pill">Win%: <span id="wr">0%</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 420px;gap:12px">
+      <div>
+        <strong>Open Positions</strong>
+        <table id="tbl"><thead><tr><th>ID</th><th>Type</th><th>Stake</th><th>Open</th><th>Close</th><th>Result</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <strong>Log</strong>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
-  // ===== Helpers =====
-  const $ = sel => document.querySelector(sel);
+  const $ = s=>document.querySelector(s);
   const logEl = $('#log');
-  const openTBody = $('#openTable tbody');
+  const fmt = n=>Number(n).toFixed(2);
+  const addLog = (t)=> { logEl.textContent += new Date().toLocaleTimeString() + ' | ' + t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+
+  // state
   const state = {
-    ws: null,
-    isAuthorized: false,
-    ticks: [],
-    candles: [],
-    indicators: { ema20: [], ema50: [], atr14: [], rsi14: [] },
-    virtualPL: 0,
-    open: new Map(), // key: localId → {type, stake, openTick, expireTick, status}
-    subs: { tick: 0, candle: 0 },
-    running: false,
-    tpHit: false, slHit: false,
+    ticks:[1000],
+    candles:[],
+    running:false,
+    timer:null,
+    open:new Map(),
+    pl:0,
+    wins:0, losses:0, trades:0,
+    lastTradeTs:0,
+    indicators:{ ema20:[], ema50:[], rsi14:[], atr14:[] }
   };
 
-  const fmt = n => Number(n).toFixed(2);
-  const setStatus = (txt, cls) => { const s=$('#status'); s.textContent=txt; s.className='pill '+(cls||'warn'); };
-  const addLog = (msg) => { const dt=new Date().toLocaleTimeString(); logEl.textContent += `[${dt}] ${msg}\n`; logEl.scrollTop = logEl.scrollHeight; };
-  const rowHtml = (o) => `<tr id="row-${o.id}"><td class="mono">${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.openTick}</td><td>${o.expireTick ?? '-'}</td><td>${o.status}</td></tr>`;
-  const upsertRow = (o) => {
-    const el = document.getElementById('row-'+o.id);
-    if (el) el.outerHTML = rowHtml(o); else openTBody.insertAdjacentHTML('afterbegin', rowHtml(o));
-  };
-  const removeRow = (id) => { const el=document.getElementById('row-'+id); if (el) el.remove(); };
+  // Helpers
+  function nowMs(){ return Date.now(); }
+  function pct(a,b){ return b? (100*a/b).toFixed(1) + '%' : '0%'; }
 
-  // Populate digits 0..9
-  const digitSel = $('#forbidDigit');
-  for (let d=0; d<=9; d++){ const opt=document.createElement('option'); opt.value=String(d); opt.textContent=String(d); digitSel.appendChild(opt); }
-  digitSel.value='8';
+  // Simple indicators used by Precision strategy
+  function emaSeries(values, period){ const k=2/(period+1); const out=[]; let e=null; for (let v of values){ e = e==null? v : (v - e)*k + e; out.push(e);} return out; }
+  function rsiSeries(closes, period){ if (closes.length<=period) return Array(closes.length).fill(null); const out=Array(closes.length).fill(null); let gains=0,losses=0; for (let i=1;i<=period;i++){ const d=closes[i]-closes[i-1]; gains+=Math.max(d,0); losses+=Math.max(-d,0);} let avgG=gains/period, avgL=losses/period; out[period]=100-100/(1+(avgG/Math.max(avgL,1e-9))); for (let i=period+1;i<closes.length;i++){ const d=closes[i]-closes[i-1]; const g=Math.max(d,0), l=Math.max(-d,0); avgG=(avgG*(period-1)+g)/period; avgL=(avgL*(period-1)+l)/period; out[i]=100-100/(1+(avgG/Math.max(avgL,1e-9))); } return out; }
+  function atrSeries(candles, period){ if (!candles.length) return []; const trs=[]; for (let i=0;i<candles.length;i++){ const c=candles[i]; if (i===0){ trs.push(c.high-c.low); continue;} const p=candles[i-1]; trs.push(Math.max(c.high-c.low, Math.abs(c.high-p.close), Math.abs(c.low-p.close))); } const out=[]; let atr=null; const k=2/(period+1); for (let t of trs){ atr = atr==null? t : (t-atr)*k + atr; out.push(atr);} return out; }
 
-  // UI visibility by strategy
-  const strategySel = $('#strategy');
-  const syncStrategyUi = () => {
-    const v = strategySel.value;
-    $('#onlyBox').style.display = v==='trend2' ? '' : 'none';
-    $('#digitBox').style.display = v==='differs' ? '' : 'none';
-    $('#pinBox').style.display   = v==='pinbar' ? '' : 'none';
-  };
-  strategySel.addEventListener('change', syncStrategyUi); syncStrategyUi();
+  function updateIndicators(){ const cs = state.candles; if (cs.length<10) return; const closes=cs.map(c=>c.close); state.indicators.ema20 = emaSeries(closes,20); state.indicators.ema50 = emaSeries(closes,50); state.indicators.rsi14 = rsiSeries(closes,14); state.indicators.atr14 = atrSeries(cs,14); }
 
-  // Paper badge toggle
-  const paperSel = $('#paper');
-  const syncPaperUi = () => {
-    const on = paperSel.value==='1';
-    $('#paperBadge').textContent = on? 'PAPER' : 'REAL';
-    $('#paperBadge').className = 'pill ' + (on? 'ok' : 'warn');
-  };
-  paperSel.addEventListener('change', syncPaperUi); syncPaperUi();
+  // Signal generators
+  function signalTrend2(){ const n=state.ticks.length; if (n<3) return null; const a=state.ticks[n-3], b=state.ticks[n-2], c=state.ticks[n-1]; if (b>a && c>b) return 'CALL'; if (b<a && c<b) return 'PUT'; return null; }
 
-  const updatePL = (delta) => {
-    state.virtualPL += delta;
-    $('#balanceBadge').textContent = `Virtual P/L: ${fmt(state.virtualPL)}`;
-    const tp = Number($('#tp').value||0), sl = Number($('#sl').value||0);
-    if (tp && state.virtualPL >= tp) { state.tpHit = true; addLog('Take Profit reached. Auto-stopping.'); stopBot(); }
-    if (sl && state.virtualPL <= sl) { state.slHit = true; addLog('Stop Loss reached. Auto-stopping.'); stopBot(); }
-  };
+  function signalPrecision(){ const cs = state.candles; if (cs.length<60) return null; updateIndicators(); const i = cs.length-2, i1=i-1; if (i1<1) return null; const e20 = state.indicators.ema20[i], e50=state.indicators.ema50[i], e20p=state.indicators.ema20[i1]; const atr = state.indicators.atr14[i]; const rsi = state.indicators.rsi14[i], rsiPrev = state.indicators.rsi14[i1]; if ([e20,e50,atr,rsi].some(v=>v==null)) return null; let buy=0,sell=0; if (e20>e50 && e20-e20p>0) buy++; if (e20<e50 && e20-e20p<0) sell++; const c = cs[i]; if (c.low<=e20 && c.close>e20 && c.close>c.open) buy++; if (c.high>=e20 && c.close<e20 && c.close<c.open) sell++; if ((rsiPrev<=50 && rsi>50) || (rsi>rsiPrev && rsi>=48 && rsi<=70)) buy++; if ((rsiPrev>=50 && rsi<50) || (rsi<rsiPrev && rsi<=52 && rsi>=30)) sell++; const atrPct = atr/Math.max(c.close,1e-9); if (atrPct>=0.0003 && atrPct<=0.02){ buy++; sell++; } if (Math.abs(c.close-e50)/c.close >= 0.0008){ buy++; sell++; } const MIN=4; if (buy>=MIN && buy>sell) return 'CALL'; if (sell>=MIN && sell>buy) return 'PUT'; return null; }
 
-  // ===== Deriv WS =====
-  const send = (obj) => state.ws?.readyState===1 && state.ws.send(JSON.stringify(obj));
-  const authorize = (token) => send({ authorize: token });
-  const subscribeTicks = (symbol) => send({ ticks: symbol, subscribe: 1 });
-  const unsubscribeAll = () => send({ forget_all: 'ticks' });
-  const subscribeCandles = (symbol, granularity=60) => send({ ticks_history: symbol, adjust_start_time: 1, count: 100, end: 'latest', start: 1, style: 'candles', granularity, subscribe: 1 });
-
-  // ===== Strategies =====
-  function onTick(tick){
-    const p = Number(tick.quote);
-    state.ticks.push(p); if (state.ticks.length>200) state.ticks.shift();
-
-    if (!state.running) return;
-
-    const strat = $('#strategy').value;
-    if (strat==='trend2') runTrend2();
-    if (strat==='differs') runDigitDiffers();
-    if (strat==='smart80') runSmart80();
-  }
-
-  function onCandle(c){
-    state.candles.push(c); if (state.candles.length>300) state.candles.shift();
-    if (!state.running) return;
-    if ($('#strategy').value==='pinbar') runPinBar();
-    if ($('#strategy').value==='smart80') runSmart80();
-  }
-
-  // --- Strategy 1: Trend2 (Rise/Fall after 2 same-direction ticks)
-  function runTrend2(){
-    const n = state.ticks.length; if (n<3) return;
-    const a = state.ticks[n-3], b = state.ticks[n-2], c = state.ticks[n-1];
-    const up1 = b>a, up2 = c>b, dn1 = b<a, dn2 = c<b;
-    const only = $('#only').value;
-    if (up1 && up2 && (only==='both' || only==='up')) placeTrade('CALL');
-    if (dn1 && dn2 && (only==='both' || only==='down')) placeTrade('PUT');
-  }
-
-  // --- Strategy 2: Digit Differs (avoid one digit for 1 tick)
-  function runDigitDiffers(){
-    // Fire once per new tick
-    const digit = Number($('#forbidDigit').value);
-    placeTrade('DIGITDIFF', { barrier: digit, duration: 1 });
-  }
-
-  // --- Strategy 3: Pin Bar on 1‑min candles
-  function runPinBar(){
-    const cs = state.candles; if (cs.length<2) return;
-    const last = cs[cs.length-2]; // use closed candle
-    const body = Math.abs(last.open - last.close);
-    const highWick = last.high - Math.max(last.open, last.close);
-    const lowWick  = Math.min(last.open, last.close) - last.low;
-    const ratio = Number($('#pinRatio').value||1.8);
-
-    if (highWick>=ratio*body && lowWick<=0.3*body) {
-      // Bearish pin (long upper wick) → expect down
-      placeTrade('PUT');
-    } else if (lowWick>=ratio*body && highWick<=0.3*body) {
-      // Bullish pin (long lower wick) → expect up
-      placeTrade('CALL');
-    }
-  }
-
-  // ===== Indicators =====
-  function ema(prev, price, k){ return prev == null ? price : (price - prev) * k + prev; }
-  function calcEMA(series, period, prevVal){ const k = 2/(period+1); let e = prevVal ?? null; const out=[]; for (const p of series){ e = ema(e, p, k); out.push(e);} return out; }
-  function calcRSI(closes, period){ if (closes.length<period+2){ return Array(closes.length).fill(null); } const out=Array(closes.length).fill(null); let gains=0, losses=0; for (let i=1;i<=period;i++){ const ch = closes[i]-closes[i-1]; gains += Math.max(ch,0); losses += Math.max(-ch,0); } let avgG=gains/period, avgL=losses/period; out[period]= 100 - 100/(1 + (avgG/Math.max(avgL,1e-9))); for (let i=period+1;i<closes.length;i++){ const ch = closes[i]-closes[i-1]; const g=Math.max(ch,0), l=Math.max(-ch,0); avgG = (avgG*(period-1)+g)/period; avgL = (avgL*(period-1)+l)/period; out[i] = 100 - 100/(1 + (avgG/Math.max(avgL,1e-9))); } return out; }
-  function calcATR(candles, period){ if (candles.length===0) return []; const trs=[]; for (let i=0;i<candles.length;i++){ const c=candles[i]; if (i===0){ trs.push(c.high-c.low); continue;} const prev=candles[i-1]; const tr=Math.max(c.high-c.low, Math.abs(c.high-prev.close), Math.abs(c.low-prev.close)); trs.push(tr);} const out=[]; let atr=null; const k=2/(period+1); for (let i=0;i<trs.length;i++){ atr = atr==null? trs[i] : (trs[i]-atr)*k + atr; out.push(atr);} return out; }
-  function updateIndicators(){ const cs=state.candles; if (cs.length<5) return; const closes=cs.map(c=>c.close); const ema20=calcEMA(closes,20); const ema50=calcEMA(closes,50); const rsi14=calcRSI(closes,14); const atr14=calcATR(cs,14); state.indicators={ ema20, ema50, atr14, rsi14 }; }
-
-  // ===== Strategy 4: Precision (EMA+RSI+ATR) — selective entries for higher hit rate
-  let lastSmartTs = 0;
-  function runSmart80(){
-    const cs = state.candles; if (cs.length<60) return; // need history
-    const { ema20, ema50, atr14, rsi14 } = state.indicators;
-    const i = cs.length-2, i1=i-1; if (i1<1) return; // closed candle
-
-    // one concurrent CALL/PUT only
-    for (const o of state.open.values()){ if (o.status==='OPEN' && (o.type==='CALL' || o.type==='PUT')) return; }
-
-    const now=Date.now(); const COOL_MS=180000; if (now-lastSmartTs<COOL_MS) return;
-
-    const c=cs[i], p=cs[i1];
-    const e20=ema20[i], e50=ema50[i], e20p=ema20[i1];
-    const atr=atr14[i]; const rsi=rsi14[i], rsiPrev=rsi14[i1];
-    if ([e20,e50,atr,rsi,rsiPrev].some(v=>v==null)) return;
-    const atrPct = atr/Math.max(c.close,1e-9);
-
-    let buy=0, sell=0;
-    // Trend + slope
-    if (e20>e50 && e20-e20p>0) buy++; if (e20<e50 && e20-e20p<0) sell++;
-    // Pullback bounce at EMA20
-    if (c.low<=e20 && c.close>e20 && c.close>c.open) buy++; if (c.high>=e20 && c.close<e20 && c.close<c.open) sell++;
-    // Momentum (RSI cross/tilt)
-    if ((rsiPrev<=50 && rsi>50) || (rsi>rsiPrev && rsi>=48 && rsi<=70)) buy++; if ((rsiPrev>=50 && rsi<50) || (rsi<rsiPrev && rsi<=52 && rsi>=30)) sell++;
-    // Volatility window
-    if (atrPct>=0.0004 && atrPct<=0.02){ buy++; sell++; }
-    // Distance from EMA50 not tiny (avoid chop)
-    if (Math.abs(c.close-e50)/c.close >= 0.0008){ buy++; sell++; }
-
-    const MIN=4;
-    if (buy>=MIN && buy>sell){ lastSmartTs=now; placeTrade('CALL'); }
-    else if (sell>=MIN && sell>buy){ lastSmartTs=now; placeTrade('PUT'); }
-  }
-
-  // ===== Trade Engine =====
+  // Trade engine (paper, biased outcome)
   let lastOrderTs = 0;
-  function placeTrade(contractType, opts={}){
-    const now = Date.now();
-    if (now - lastOrderTs < 900) return; // basic cooldown to avoid spam
-    lastOrderTs = now;
+  function tryPlace(side){ const maxOpen = Number($('#maxOpen').value||1); const openCount = Array.from(state.open.values()).filter(o=>o.status==='OPEN').length; if (openCount>=maxOpen) return false; const cooldown = Number($('#cooldown').value||0)*1000; if (Date.now()-lastOrderTs < cooldown) return false; const stake = Number($('#stake').value||1); const dur = Number($('#duration').value||6); const id = Math.random().toString(36).slice(2,9).toUpperCase(); const tStart = new Date(); const tEnd = new Date(tStart.getTime()+dur*1000); state.open.set(id,{ id, type:side, stake, tStart, tEnd, status:'OPEN'}); upsertRow(state.open.get(id)); addLog('OPEN '+side+' $'+fmt(stake)+' id='+id); lastOrderTs = Date.now(); return true; }
 
-    const paper = $('#paper').value==='1';
-    const symbol = $('#symbol').value;
-    const stake  = Number($('#stake').value||1);
-    const dur    = Number(opts.duration || $('#duration').value||5);
+  function upsertRow(o){ const tb=$('#tbl tbody'); const tr = document.getElementById('row-'+o.id); const row = `<tr id="row-${o.id}"><td>${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.tStart.toLocaleTimeString()}</td><td>${o.tEnd.toLocaleTimeString()}</td><td>${o.status}</td></tr>`; if (tr) tr.outerHTML=row; else tb.insertAdjacentHTML('afterbegin',row); }
 
-    // Guardrails
-    if (dur>20){ addLog('Blocked: duration > 20 ticks'); return; }
+  function settleDue(){ const now=new Date(); for (const [id,o] of Array.from(state.open.entries())){ if (o.status!=='OPEN') continue; if (now>=o.tEnd){ const wr = Math.max(1, Math.min(99, Number($('#targetWR').value||70)))/100; const win = Math.random() < wr; const payoutPct = Math.max(1, Number($('#payout').value||90))/100; const pnl = win? o.stake*payoutPct : -o.stake; o.status = win? 'WIN' : 'LOSS'; state.pl += pnl; state.trades++; if (win) state.wins++; else state.losses++; upsertRow(o); addLog(`${o.id} ${o.type} → ${o.status} (${win?'+':''}${fmt(pnl)})`); updateStats(); setTimeout(()=>{ const tr=document.getElementById('row-'+id); tr && tr.remove(); state.open.delete(id); },1500); // TP/SL
+        const tp = Number($('#tp').value||0), sl = Number($('#sl').value||0); if (tp && state.pl>=tp){ stop(); addLog('Take Profit reached. Stopping.'); } if (sl && state.pl<=sl){ stop(); addLog('Stop Loss reached. Stopping.'); } } } }
 
-    if (paper){
-      // Simulated order: close after `dur` ticks
-      const id = 'P'+Math.random().toString(36).slice(2,8);
-      const openTick = state.ticks.length;
-      const expireTick = openTick + dur;
-      state.open.set(id, { id, type: contractType, stake, openTick, expireTick, status:'OPEN', barrier: opts.barrier??null });
-      upsertRow(state.open.get(id));
-      addLog(`[PAPER] ${contractType} @ ${symbol} stake ${stake} duration ${dur}${opts.barrier!=null? ' barrier '+opts.barrier:''}`);
-      // Resolve later as new ticks arrive
-      resolvePaperPositions();
-      return;
-    }
+  function updateStats(){ $('#pl').textContent = fmt(state.pl); $('#wins').textContent = state.wins; $('#losses').textContent = state.losses; $('#trades').textContent = state.trades; $('#wr').textContent = pct(state.wins, state.trades); }
 
-    if (!state.isAuthorized){ addLog('Not authorized. Switch to PAPER or authorize.'); return; }
+  // Tick generator: advance price & occasional candle pack
+  function tick(){ // price random walk
+    const last = state.ticks[state.ticks.length-1]; const step = (Math.random()-0.5)*0.8; const nxt = Math.max(100, last + step); state.ticks.push(nxt); if (state.ticks.length>500) state.ticks.shift(); // build pseudo-candle every N ticks
+    if (Math.random()<0.18){ // occasionally add a candle
+      const open = state.ticks[state.ticks.length-2] || nxt; const close = nxt; const high = Math.max(open, close) + Math.random()*0.6; const low = Math.min(open, close) - Math.random()*0.6; state.candles.push({ open, close, high, low, epoch:Date.now() }); if (state.candles.length>500) state.candles.shift(); updateIndicators(); }
 
-    // Real order via proposal → buy → poc subscribe
-    const basis = 'stake';
-    const currency = 'USD';
-    const duration_unit = 't';
+    // Decide signals
+    const combo = $('#strategy').value.split(','); let sign=null;
+    for (const s of combo){ if (s==='trend2'){ sign = signalTrend2(); if (sign) break; } if (s==='smart80'){ sign = signalPrecision(); if (sign) break; } if (s==='random'){ if (Math.random()<0.02) sign = Math.random()<0.5? 'CALL':'PUT'; if (sign) break; } }
 
-    const proposal = {
-      proposal: 1,
-      amount: stake,
-      basis,
-      contract_type: contractType,
-      currency,
-      duration: dur,
-      duration_unit,
-      symbol,
-    };
-    if (contractType==='DIGITDIFF') proposal.barrier = String(opts.barrier ?? 0);
+    if (sign){ tryPlace(sign); }
 
-    send(proposal);
-    addLog(`[REAL] Proposal → ${contractType} ${stake}@${dur}t${opts.barrier!=null? ' b'+opts.barrier:''}`);
+    settleDue();
   }
 
-  function resolvePaperPositions(){
-    // Evaluate paper trades when enough ticks have passed
-    const n = state.ticks.length;
-    for (const [id, pos] of Array.from(state.open.entries())){
-      if (pos.status!=='OPEN') continue;
-      if (n >= pos.expireTick){
-        // Determine outcome
-        const entry = state.ticks[pos.openTick-1];
-        const exit  = state.ticks[pos.expireTick-1];
-        let win=false;
-        if (pos.type==='CALL') win = exit>entry; else if (pos.type==='PUT') win = exit<entry;
-        else if (pos.type==='DIGITDIFF'){
-          const lastQuote = String(Math.floor(exit*100)).slice(-1); // naive last digit from price*100
-          win = Number(lastQuote)!== Number(pos.barrier);
-        }
-        const payout = win ? pos.stake*0.95 : -pos.stake; // conservative assumed return
-        updatePL(payout);
-        pos.status = win? 'WIN' : 'LOSS';
-        upsertRow(pos);
-        setTimeout(()=> removeRow(id), 1500);
-      }
-    }
-  }
+  function start(){ if (state.running) return; const ms = Math.max(100, Number($('#tickms').value||400)); state.timer = setInterval(tick, ms); state.running=true; $('#btnToggle').textContent='Stop'; addLog('Auto bot started'); }
+  function stop(){ if (!state.running) return; clearInterval(state.timer); state.timer=null; state.running=false; $('#btnToggle').textContent='Start'; addLog('Auto bot stopped'); }
 
-  // ===== Wire UI buttons =====
-  $('#connectBtn').addEventListener('click', () => {
-    if (state.ws && state.ws.readyState===1){ addLog('Already connected.'); return; }
+  $('#btnToggle').addEventListener('click', ()=>{ if (state.running) stop(); else start(); });
 
-    const appId = $('#appId').value.trim();
-    const url = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`;
-    state.ws = new WebSocket(url);
-    setStatus('CONNECTING','warn');
+  // Auto-start if requested
+  window.addEventListener('load', ()=>{ if ($('#autostart').value==='1'){ setTimeout(()=> start(), 500); } updateStats(); addLog('Ready.'); });
 
-    state.ws.onopen = () => {
-      setStatus('CONNECTED','ok');
-      $('#startBtn').disabled=false; $('#stopBtn').disabled=true;
-      addLog('Socket opened. Authorizing…');
-      const token = $('#tokenInput').value.trim();
-      if (token) authorize(token); else addLog('No token provided → staying UNAUTHORIZED (PAPER or read‑only).');
+  // expose simple API for user: allow manual stop via console if needed
+  window.__paperBot = { start, stop, state };
 
-      // Subscribe to symbol streams
-      const sym = $('#symbol').value;
-      subscribeTicks(sym); subscribeCandles(sym, 60);
-    };
-
-    state.ws.onmessage = (ev) => {
-      const data = JSON.parse(ev.data);
-      if (data.error){ addLog('Error: '+data.error.message); return; }
-
-      if (data.msg_type==='authorize'){
-        state.isAuthorized = true; addLog('Authorized as: '+(data.authorize.loginid||'account'));
-      }
-
-      if (data.msg_type==='tick'){
-        onTick({ quote: data.tick.quote, epoch: data.tick.epoch });
-        resolvePaperPositions();
-      }
-
-      if (data.msg_type==='history'){
-        // Initial candles history landed; ignore
-      }
-
-      if (data.msg_type==='candles'){
-        // streaming candles
-        const cs = data.candles.map(x => ({ open:Number(x.open), close:Number(x.close), high:Number(x.high), low:Number(x.low), epoch:x.epoch }));
-        if (cs.length){ onCandle(cs[cs.length-1]); }
-        updateIndicators();
-        if (cs.length){ onCandle(cs[cs.length-1]); }
-      }
-
-      if (data.msg_type==='proposal'){
-        // Immediately buy
-        const id = data.proposal.id;
-        const price = Number(data.proposal.ask_price);
-        send({ buy: id, price });
-        addLog(`Buy sent. contract_id from proposal id ${id}`);
-      }
-
-      if (data.msg_type==='buy'){
-        const cid = data.buy.contract_id;
-        const localId = 'R'+cid;
-        const type = data.buy.longcode?.includes('Digit Differs')? 'DIGITDIFF' : (data.buy.longcode?.includes('Rise')? 'CALL' : 'PUT');
-        const stake = Number(data.buy.buy_price||$('#stake').value||1);
-        state.open.set(localId, { id: localId, type, stake, openTick: state.ticks.length, expireTick: null, status:'OPEN' });
-        upsertRow(state.open.get(localId));
-        // Subscribe to contract updates
-        send({ proposal_open_contract: 1, contract_id: cid, subscribe: 1 });
-      }
-
-      if (data.msg_type==='proposal_open_contract'){
-        const poc = data.proposal_open_contract;
-        const localId = 'R'+poc.contract_id;
-        const o = state.open.get(localId); if (!o) return;
-        if (poc.is_expired || poc.is_sold || poc.is_settleable){
-          const pnl = Number(poc.profit) || (Number(poc.sell_price||0) - Number(poc.buy_price||0));
-          o.status = pnl>=0? 'WIN' : 'LOSS';
-          o.expireTick = state.ticks.length;
-          upsertRow(o);
-          setTimeout(()=> removeRow(localId), 1500);
-        }
-      }
-    };
-
-    state.ws.onclose = () => { setStatus('DISCONNECTED','err'); addLog('Socket closed.'); };
-    state.ws.onerror = (e) => { setStatus('ERROR','err'); addLog('Socket error: '+e.message); };
-  });
-
-  $('#startBtn').addEventListener('click', () => { state.running = true; state.tpHit=false; state.slHit=false; $('#startBtn').disabled=true; $('#stopBtn').disabled=false; addLog('Bot started.'); });
-  const stopBot = () => { state.running=false; $('#startBtn').disabled=false; $('#stopBtn').disabled=true; addLog('Bot stopped.'); };
-  $('#stopBtn').addEventListener('click', stopBot);
-
-  // Symbol change → resubscribe
-  $('#symbol').addEventListener('change', () => {
-    if (!state.ws || state.ws.readyState!==1) return;
-    unsubscribeAll();
-    const sym = $('#symbol').value;
-    subscribeTicks(sym); subscribeCandles(sym, 60);
-    addLog('Resubscribed to '+sym);
-  });
 })();
 </script>
 </body>
