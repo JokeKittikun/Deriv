@@ -429,7 +429,6 @@
         const cs = data.candles.map(x => ({ open:Number(x.open), close:Number(x.close), high:Number(x.high), low:Number(x.low), epoch:x.epoch }));
         if (cs.length){ onCandle(cs[cs.length-1]); }
         updateIndicators();
-      }));
         if (cs.length){ onCandle(cs[cs.length-1]); }
       }
 
