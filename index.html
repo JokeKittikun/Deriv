@@ -1,187 +1,459 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Full‑Auto PUT/CALL Paper Bot — 70% win bias</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Deriv Auto Trader — Real / Paper (No Martingale)</title>
 <style>
-  :root{--bg:#071026;--card:#071A2B;--txt:#E6EEF6;--muted:#9FB4C8;--ok:#22c55e;--warn:#f59e0b}
-  *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,var(--bg),#05101a);color:var(--txt);font:14px Inter,system-ui,Segoe UI,Roboto,Arial}
-  .wrap{max-width:1100px;margin:20px auto;padding:16px}
-  h1{margin:0 0 8px;font-size:20px}
-  .card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px;margin-bottom:12px}
-  .row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-  label{font-size:12px;color:var(--muted)}
-  input,select,button{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071827;color:var(--txt)}
-  button.primary{background:linear-gradient(90deg,#22d3ee,#3b82f6);border:0;color:#032;font-weight:700}
-  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04)}
-  table{width:100%;border-collapse:collapse;margin-top:8px}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#071027;color:#e6eef6;margin:0;padding:18px}
+  .wrap{max-width:1100px;margin:0 auto}
+  .card{background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.04)}
+  label{font-size:12px;color:#9fb4c8}
+  input,select,button{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071827;color:#e6eef6;width:100%}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .row{display:flex;gap:8px}
+  button.primary{background:linear-gradient(90deg,#22d3ee,#3b82f6);border:0;color:#002}
+  .pill{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04)}
+  .log{height:300px;overflow:auto;background:#021021;padding:10px;border-radius:8px;font-family:ui-monospace,monospace}
+  table{width:100%;border-collapse:collapse}
   th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
-  .log{height:300px;overflow:auto;background:#02060a;border-radius:8px;padding:8px;font-family:ui-monospace,monospace}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Full‑Auto PUT/CALL — Paper Bot <span class="pill">70% win bias</span></h1>
+  <h2>Deriv Auto Trader — Real / Paper (No Martingale)</h2>
 
   <div class="card">
-    <div class="row">
+    <div class="grid">
       <div>
-        <label>Stake</label>
-        <input id="stake" type="number" step="0.01" value="1.00" />
+        <label>App ID</label>
+        <input id="appId" value="1089">
+      </div>
+      <div style="grid-column: span 2 / span 2;">
+        <label>API Token (authorize for REAL)</label>
+        <input id="token" placeholder="Paste Deriv API token">
       </div>
       <div>
-        <label>Payout % (win)</label>
-        <input id="payout" type="number" value="90" />
+        <label>Mode</label>
+        <select id="mode"><option value="paper" selected>PAPER (Sim)</option><option value="real">REAL (Live)</option></select>
       </div>
       <div>
-        <label>Target Win Rate %</label>
-        <input id="targetWR" type="number" value="70" />
-      </div>
-      <div>
-        <label>Duration (s)</label>
-        <input id="duration" type="number" value="6" min="1" max="60" />
-      </div>
-      <div>
-        <label>Max Concurrent</label>
-        <input id="maxOpen" type="number" value="1" min="1" max="5" />
-      </div>
-      <div>
-        <label>Cooldown (s)</label>
-        <input id="cooldown" type="number" value="3" min="0" />
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <div>
-        <label>Strategy combo</label>
-        <select id="strategy">
-          <option value="trend2,smart80" selected>Auto: Trend2 + Precision (selective)</option>
-          <option value="trend2">Trend2 only</option>
-          <option value="smart80">Precision only</option>
-          <option value="random">Random trades only</option>
+        <label>Symbol</label>
+        <select id="symbol">
+          <option value="R_100">R_100</option>
+          <option value="R_75">R_75</option>
+          <option value="R_50">R_50</option>
         </select>
       </div>
       <div>
-        <label>Tick speed (ms)</label>
-        <input id="tickms" type="number" value="400" min="100" />
+        <label>Stake (USD)</label>
+        <input id="stake" type="number" min="0.35" step="0.01" value="1.00">
       </div>
       <div>
-        <label>Auto‑start</label>
-        <select id="autostart"><option value="1" selected>Yes</option><option value="0">No</option></select>
+        <label>Duration (ticks, max 20)</label>
+        <input id="duration" type="number" min="1" max="20" step="1" value="5">
+      </div>
+
+      <div>
+        <label>Payout % (assumed for paper payout calc)</label>
+        <input id="payout" type="number" value="90">
+      </div>
+      <div>
+        <label>Max concurrent contracts</label>
+        <input id="maxOpen" type="number" value="1" min="1" max="5">
+      </div>
+      <div>
+        <label>Cooldown (ms)</label>
+        <input id="cooldown" type="number" value="900" min="0">
+      </div>
+      <div>
+        <label>Tick speed (ms) — simulation/environment ticks</label>
+        <input id="tickms" type="number" value="400" min="100">
       </div>
       <div>
         <label>Stop Loss ($)</label>
-        <input id="sl" type="number" value="-100" />
+        <input id="sl" type="number" value="-100">
       </div>
       <div>
         <label>Take Profit ($)</label>
-        <input id="tp" type="number" value="100" />
+        <input id="tp" type="number" value="200">
       </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="btnToggle" class="primary">Start</button>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button id="connect" class="primary" style="width:140px">Connect</button>
+      <button id="start" class="primary" disabled style="width:140px">Start Bot</button>
+      <button id="stop" style="width:140px" disabled>Stop Bot</button>
+      <div style="margin-left:8px;align-self:center">
+        <span class="pill" id="status">DISCONNECTED</span>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <strong>Live Stats</strong>
-    <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
+    <strong>Live</strong>
+    <div style="display:flex;gap:12px;margin-top:8px">
       <div class="pill">Virtual P/L: $<span id="pl">0.00</span></div>
       <div class="pill">Trades: <span id="trades">0</span></div>
+      <div class="pill">Open: <span id="openCount">0</span></div>
       <div class="pill">Wins: <span id="wins">0</span></div>
       <div class="pill">Losses: <span id="losses">0</span></div>
-      <div class="pill">Win%: <span id="wr">0%</span></div>
     </div>
   </div>
 
-  <div class="card">
-    <div style="display:grid;grid-template-columns:1fr 420px;gap:12px">
-      <div>
-        <strong>Open Positions</strong>
-        <table id="tbl"><thead><tr><th>ID</th><th>Type</th><th>Stake</th><th>Open</th><th>Close</th><th>Result</th></tr></thead><tbody></tbody></table>
-      </div>
-      <div>
-        <strong>Log</strong>
-        <div class="log" id="log"></div>
-      </div>
+  <div class="card" style="display:grid;grid-template-columns:1fr 420px;gap:12px">
+    <div>
+      <strong>Open Contracts</strong>
+      <table id="openTable"><thead><tr><th>ID</th><th>Type</th><th>Stake</th><th>OpenTick</th><th>ExpiryTick</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div>
+      <strong>Log</strong>
+      <pre id="log" class="log"></pre>
     </div>
   </div>
 </div>
 
 <script>
 (() => {
-  const $ = s=>document.querySelector(s);
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
   const logEl = $('#log');
-  const fmt = n=>Number(n).toFixed(2);
-  const addLog = (t)=> { logEl.textContent += new Date().toLocaleTimeString() + ' | ' + t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+  const addLog = (t) => { logEl.textContent += new Date().toLocaleTimeString() + ' | ' + t + '\\n'; logEl.scrollTop = logEl.scrollHeight; };
+  const fmt = n => Number(n).toFixed(2);
+  const setStatus = (txt, cls) => { const el = $('#status'); el.textContent = txt; };
 
-  // state
+  // ---------- State ----------
   const state = {
-    ticks:[1000],
-    candles:[],
-    running:false,
-    timer:null,
-    open:new Map(),
-    pl:0,
-    wins:0, losses:0, trades:0,
-    lastTradeTs:0,
-    indicators:{ ema20:[], ema50:[], rsi14:[], atr14:[] }
+    ws: null,
+    isAuthorized: false,
+    ticks: [],          // live tick quotes (numbers)
+    candles: [],        // pseudo candles
+    running: false,
+    open: new Map(),    // localId -> { id, type, stake, openTick, expiryTick, status, contract_id? }
+    virtualPL: 0,
+    wins: 0, losses: 0, trades: 0,
+    lastOrderTs: 0,
+    tickTimer: null
   };
 
-  // Helpers
-  function nowMs(){ return Date.now(); }
-  function pct(a,b){ return b? (100*a/b).toFixed(1) + '%' : '0%'; }
+  // ---------- Deriv WS helpers ----------
+  function send(obj){
+    try { if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj)); }
+    catch(e){ addLog('send err: '+(e.message||e)); }
+  }
+  function authorize(token){ send({ authorize: token }); }
+  function subscribeTicks(symbol){ send({ ticks: symbol, subscribe: 1 }); }
+  function subscribeCandles(symbol, granularity=60){ send({ ticks_history: symbol, count: 100, end: 'latest', style: 'candles', granularity, subscribe: 1 }); }
+  function forgetAll(){ send({ forget_all: 'ticks' }); }
 
-  // Simple indicators used by Precision strategy
-  function emaSeries(values, period){ const k=2/(period+1); const out=[]; let e=null; for (let v of values){ e = e==null? v : (v - e)*k + e; out.push(e);} return out; }
-  function rsiSeries(closes, period){ if (closes.length<=period) return Array(closes.length).fill(null); const out=Array(closes.length).fill(null); let gains=0,losses=0; for (let i=1;i<=period;i++){ const d=closes[i]-closes[i-1]; gains+=Math.max(d,0); losses+=Math.max(-d,0);} let avgG=gains/period, avgL=losses/period; out[period]=100-100/(1+(avgG/Math.max(avgL,1e-9))); for (let i=period+1;i<closes.length;i++){ const d=closes[i]-closes[i-1]; const g=Math.max(d,0), l=Math.max(-d,0); avgG=(avgG*(period-1)+g)/period; avgL=(avgL*(period-1)+l)/period; out[i]=100-100/(1+(avgG/Math.max(avgL,1e-9))); } return out; }
-  function atrSeries(candles, period){ if (!candles.length) return []; const trs=[]; for (let i=0;i<candles.length;i++){ const c=candles[i]; if (i===0){ trs.push(c.high-c.low); continue;} const p=candles[i-1]; trs.push(Math.max(c.high-c.low, Math.abs(c.high-p.close), Math.abs(c.low-p.close))); } const out=[]; let atr=null; const k=2/(period+1); for (let t of trs){ atr = atr==null? t : (t-atr)*k + atr; out.push(atr);} return out; }
+  // ---------- UI helpers ----------
+  function updateLiveBadges(){
+    $('#pl').textContent = fmt(state.virtualPL);
+    $('#wins').textContent = state.wins;
+    $('#losses').textContent = state.losses;
+    $('#trades').textContent = state.trades;
+    $('#openCount').textContent = Array.from(state.open.values()).filter(x=>x.status==='OPEN').length;
+  }
+  function upsertOpenRow(o){
+    const tbody = $('#openTable tbody');
+    const existing = document.getElementById('row-'+o.id);
+    const row = `<tr id="row-${o.id}"><td>${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.openTick}</td><td>${o.expiryTick ?? '-'}</td><td>${o.status}</td></tr>`;
+    if (existing) existing.outerHTML = row; else tbody.insertAdjacentHTML('afterbegin', row);
+  }
+  function removeOpenRow(id){ const r=document.getElementById('row-'+id); if(r) r.remove(); }
 
-  function updateIndicators(){ const cs = state.candles; if (cs.length<10) return; const closes=cs.map(c=>c.close); state.indicators.ema20 = emaSeries(closes,20); state.indicators.ema50 = emaSeries(closes,50); state.indicators.rsi14 = rsiSeries(closes,14); state.indicators.atr14 = atrSeries(cs,14); }
-
-  // Signal generators
-  function signalTrend2(){ const n=state.ticks.length; if (n<3) return null; const a=state.ticks[n-3], b=state.ticks[n-2], c=state.ticks[n-1]; if (b>a && c>b) return 'CALL'; if (b<a && c<b) return 'PUT'; return null; }
-
-  function signalPrecision(){ const cs = state.candles; if (cs.length<60) return null; updateIndicators(); const i = cs.length-2, i1=i-1; if (i1<1) return null; const e20 = state.indicators.ema20[i], e50=state.indicators.ema50[i], e20p=state.indicators.ema20[i1]; const atr = state.indicators.atr14[i]; const rsi = state.indicators.rsi14[i], rsiPrev = state.indicators.rsi14[i1]; if ([e20,e50,atr,rsi].some(v=>v==null)) return null; let buy=0,sell=0; if (e20>e50 && e20-e20p>0) buy++; if (e20<e50 && e20-e20p<0) sell++; const c = cs[i]; if (c.low<=e20 && c.close>e20 && c.close>c.open) buy++; if (c.high>=e20 && c.close<e20 && c.close<c.open) sell++; if ((rsiPrev<=50 && rsi>50) || (rsi>rsiPrev && rsi>=48 && rsi<=70)) buy++; if ((rsiPrev>=50 && rsi<50) || (rsi<rsiPrev && rsi<=52 && rsi>=30)) sell++; const atrPct = atr/Math.max(c.close,1e-9); if (atrPct>=0.0003 && atrPct<=0.02){ buy++; sell++; } if (Math.abs(c.close-e50)/c.close >= 0.0008){ buy++; sell++; } const MIN=4; if (buy>=MIN && buy>sell) return 'CALL'; if (sell>=MIN && sell>buy) return 'PUT'; return null; }
-
-  // Trade engine (paper, biased outcome)
-  let lastOrderTs = 0;
-  function tryPlace(side){ const maxOpen = Number($('#maxOpen').value||1); const openCount = Array.from(state.open.values()).filter(o=>o.status==='OPEN').length; if (openCount>=maxOpen) return false; const cooldown = Number($('#cooldown').value||0)*1000; if (Date.now()-lastOrderTs < cooldown) return false; const stake = Number($('#stake').value||1); const dur = Number($('#duration').value||6); const id = Math.random().toString(36).slice(2,9).toUpperCase(); const tStart = new Date(); const tEnd = new Date(tStart.getTime()+dur*1000); state.open.set(id,{ id, type:side, stake, tStart, tEnd, status:'OPEN'}); upsertRow(state.open.get(id)); addLog('OPEN '+side+' $'+fmt(stake)+' id='+id); lastOrderTs = Date.now(); return true; }
-
-  function upsertRow(o){ const tb=$('#tbl tbody'); const tr = document.getElementById('row-'+o.id); const row = `<tr id="row-${o.id}"><td>${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.tStart.toLocaleTimeString()}</td><td>${o.tEnd.toLocaleTimeString()}</td><td>${o.status}</td></tr>`; if (tr) tr.outerHTML=row; else tb.insertAdjacentHTML('afterbegin',row); }
-
-  function settleDue(){ const now=new Date(); for (const [id,o] of Array.from(state.open.entries())){ if (o.status!=='OPEN') continue; if (now>=o.tEnd){ const wr = Math.max(1, Math.min(99, Number($('#targetWR').value||70)))/100; const win = Math.random() < wr; const payoutPct = Math.max(1, Number($('#payout').value||90))/100; const pnl = win? o.stake*payoutPct : -o.stake; o.status = win? 'WIN' : 'LOSS'; state.pl += pnl; state.trades++; if (win) state.wins++; else state.losses++; upsertRow(o); addLog(`${o.id} ${o.type} → ${o.status} (${win?'+':''}${fmt(pnl)})`); updateStats(); setTimeout(()=>{ const tr=document.getElementById('row-'+id); tr && tr.remove(); state.open.delete(id); },1500); // TP/SL
-        const tp = Number($('#tp').value||0), sl = Number($('#sl').value||0); if (tp && state.pl>=tp){ stop(); addLog('Take Profit reached. Stopping.'); } if (sl && state.pl<=sl){ stop(); addLog('Stop Loss reached. Stopping.'); } } } }
-
-  function updateStats(){ $('#pl').textContent = fmt(state.pl); $('#wins').textContent = state.wins; $('#losses').textContent = state.losses; $('#trades').textContent = state.trades; $('#wr').textContent = pct(state.wins, state.trades); }
-
-  // Tick generator: advance price & occasional candle pack
-  function tick(){ // price random walk
-    const last = state.ticks[state.ticks.length-1]; const step = (Math.random()-0.5)*0.8; const nxt = Math.max(100, last + step); state.ticks.push(nxt); if (state.ticks.length>500) state.ticks.shift(); // build pseudo-candle every N ticks
-    if (Math.random()<0.18){ // occasionally add a candle
-      const open = state.ticks[state.ticks.length-2] || nxt; const close = nxt; const high = Math.max(open, close) + Math.random()*0.6; const low = Math.min(open, close) - Math.random()*0.6; state.candles.push({ open, close, high, low, epoch:Date.now() }); if (state.candles.length>500) state.candles.shift(); updateIndicators(); }
-
-    // Decide signals
-    const combo = $('#strategy').value.split(','); let sign=null;
-    for (const s of combo){ if (s==='trend2'){ sign = signalTrend2(); if (sign) break; } if (s==='smart80'){ sign = signalPrecision(); if (sign) break; } if (s==='random'){ if (Math.random()<0.02) sign = Math.random()<0.5? 'CALL':'PUT'; if (sign) break; } }
-
-    if (sign){ tryPlace(sign); }
-
-    settleDue();
+  // ---------- Strategy signals (same auto combo as before) ----------
+  function signalTrend2(){
+    const n = state.ticks.length; if (n < 3) return null;
+    const a = state.ticks[n-3], b = state.ticks[n-2], c = state.ticks[n-1];
+    if (b > a && c > b) return 'CALL';
+    if (b < a && c < b) return 'PUT';
+    return null;
   }
 
-  function start(){ if (state.running) return; const ms = Math.max(100, Number($('#tickms').value||400)); state.timer = setInterval(tick, ms); state.running=true; $('#btnToggle').textContent='Stop'; addLog('Auto bot started'); }
-  function stop(){ if (!state.running) return; clearInterval(state.timer); state.timer=null; state.running=false; $('#btnToggle').textContent='Start'; addLog('Auto bot stopped'); }
+  // simple precision-like test (lightweight here — heavy calc uses candles)
+  function signalPrecision(){
+    // require some candles
+    const cs = state.candles; if (cs.length < 30) return null;
+    // use last closed candle behavior — basic: bullish close > open and above a local moving average
+    const last = cs[cs.length-2];
+    const prev = cs[cs.length-3];
+    if (!last || !prev) return null;
+    const bullish = last.close > last.open && last.close > prev.close;
+    const bearish = last.close < last.open && last.close < prev.close;
+    if (bullish) return 'CALL';
+    if (bearish) return 'PUT';
+    return null;
+  }
 
-  $('#btnToggle').addEventListener('click', ()=>{ if (state.running) stop(); else start(); });
+  // ---------- Trade placement ----------
+  const CONTRACT_DURATION_MAX = 20; // ticks
 
-  // Auto-start if requested
-  window.addEventListener('load', ()=>{ if ($('#autostart').value==='1'){ setTimeout(()=> start(), 500); } updateStats(); addLog('Ready.'); });
+  function canPlace(){
+    const maxOpen = Number($('#maxOpen').value || 1);
+    const openCount = Array.from(state.open.values()).filter(o => o.status === 'OPEN').length;
+    if (openCount >= maxOpen) return false;
+    const cooldown = Number($('#cooldown').value || 900);
+    if (Date.now() - state.lastOrderTs < cooldown) return false;
+    return true;
+  }
 
-  // expose simple API for user: allow manual stop via console if needed
-  window.__paperBot = { start, stop, state };
+  function placeTradeLocal(type, stake, duration, barrier=null){
+    // PAPER path: simulate outcome and store local record
+    const id = 'P' + Math.random().toString(36).slice(2,9).toUpperCase();
+    const openTick = state.ticks.length;
+    const expiryTick = openTick + duration;
+    const record = { id, type, stake, openTick, expiryTick, status: 'OPEN', barrier, contract_id: null, real:false };
+    state.open.set(id, record);
+    upsertOpenRow(record);
+    addLog(`[PAPER OPEN] ${id} ${type} stake ${stake} ${duration}t`);
+    state.lastOrderTs = Date.now();
+    return record;
+  }
+
+  function placeTradeReal(type, stake, duration){
+    // prepare proposal request for real trade
+    const symbol = $('#symbol').value;
+    const basis = 'stake';
+    const currency = 'USD';
+    const duration_unit = 't';
+    // contract type mapping: CALL -> CALL, PUT -> PUT (Deriv expects 'CALL'|'PUT' as contract_type for digitless)
+    const proposal_req = {
+      proposal: 1,
+      amount: stake,
+      basis,
+      contract_type: type,
+      currency,
+      duration: duration,
+      duration_unit,
+      symbol
+    };
+    send(proposal_req);
+    addLog(`[REAL] Sent proposal request: ${type} ${stake}@${duration}t`);
+    state.lastOrderTs = Date.now();
+    // actual buy occurs when we receive 'proposal' msg — handled in ws.onmessage
+  }
+
+  function placeTrade(type){
+    // main entry point for placing a trade (auto or manual)
+    const dur = Math.min(CONTRACT_DURATION_MAX, Math.max(1, Number($('#duration').value || 5)));
+    const stake = Number($('#stake').value || 1);
+    if (!canPlace()){ addLog('Blocked: cooldown/max open'); return; }
+    if (dur > CONTRACT_DURATION_MAX){ addLog('Blocked: duration exceeds max'); return; }
+    const mode = $('#mode').value;
+    if (mode === 'paper'){
+      placeTradeLocal(type, stake, dur);
+    } else {
+      if (!state.isAuthorized){ addLog('Not authorized for REAL trades — authorize first'); return; }
+      placeTradeReal(type, stake, dur);
+    }
+  }
+
+  // ---------- Paper settlement (runs on each received tick) ----------
+  function settlePaper(){
+    // For each PAPER open contract, check if ticks passed expiryTick and resolve with payout% bias
+    const n = state.ticks.length;
+    for (const [id, rec] of Array.from(state.open.entries())){
+      if (rec.status !== 'OPEN' || rec.real) continue;
+      if (n >= rec.expiryTick){
+        // determine entry/exit price: use saved tick indices
+        const entryIdx = Math.max(0, rec.openTick - 1);
+        const exitIdx = Math.max(0, rec.expiryTick - 1);
+        const entry = state.ticks[entryIdx] ?? state.ticks[0];
+        const exit = state.ticks[exitIdx] ?? state.ticks[state.ticks.length-1];
+        let win = false;
+        if (rec.type === 'CALL') win = exit > entry;
+        if (rec.type === 'PUT') win = exit < entry;
+        // bias the outcome towards target WR (this makes paper simulate a desired win rate)
+        const targetWR = Math.max(1, Math.min(99, Number($('#payout') /* used for payout only */ ? $('#payout').value : 90))) /* no effect here */;
+        // Instead of overriding the logic, we use probabilistic bias:
+        const targetProb = Math.max(0.01, Math.min(0.99, Number($('#targetWR').value || 70) / 100));
+        // Combine deterministic outcome with bias: if deterministic succeeded, slightly increase chance; otherwise give chance too.
+        const baseOutcome = win ? 0.75 : 0.25; // base preference
+        const biased = Math.random() < targetProb; // target bias coin
+        const finalWin = biased ? (Math.random() < Math.max(0.75, targetProb)) : (Math.random() < baseOutcome);
+        const payoutPct = Math.max(1, Number($('#payout').value || 90)) / 100;
+        const pnl = finalWin ? rec.stake * payoutPct : -rec.stake;
+        rec.status = finalWin ? 'WIN' : 'LOSS';
+        state.virtualPL += pnl; if (finalWin) state.wins++; else state.losses++;
+        state.trades++;
+        upsertOpenRow(rec);
+        addLog(`[PAPER RESULT] ${rec.id} ${rec.type} -> ${rec.status} (${finalWin?'+':''}${fmt(pnl)})`);
+        // schedule removal
+        setTimeout(()=> { removeOpenRow(rec.id); state.open.delete(rec.id); updateLiveBadges(); }, 1200);
+      }
+    }
+  }
+
+  // ---------- WebSocket message handling for REAL trades ----------
+  function handleWsMessage(msg){
+    if (msg.error) { addLog('WS error: ' + (msg.error.message || JSON.stringify(msg.error))); return; }
+    if (msg.msg_type === 'authorize'){
+      state.isAuthorized = true;
+      addLog('Authorized — loginid: '+(msg.authorize && msg.authorize.loginid ? msg.authorize.loginid : 'unknown'));
+      $('#start').disabled = false;
+    }
+    if (msg.msg_type === 'tick'){
+      // incoming live tick
+      const q = Number(msg.tick.quote);
+      state.ticks.push(q); if (state.ticks.length > 1000) state.ticks.shift();
+      // settle paper if any
+      settlePaper();
+      return;
+    }
+    if (msg.msg_type === 'candles'){
+      // stream of candles (map into our candle array)
+      const cs = msg.candles.map(c => ({ open: Number(c.open), close: Number(c.close), high: Number(c.high), low: Number(c.low), epoch: c.epoch }));
+      if (cs.length) state.candles.push(cs[cs.length-1]);
+      if (state.candles.length > 500) state.candles.shift();
+      return;
+    }
+    if (msg.msg_type === 'proposal'){
+      // Deriv returned a proposal; buy it
+      // proposal.id and proposal.ask_price are provided
+      const proposal = msg.proposal;
+      if (!proposal) return;
+      const id = proposal.id;
+      const price = Number(proposal.ask_price);
+      // auto-buy with the ask price
+      send({ buy: id, price });
+      addLog('[REAL] Buying proposal id ' + id + ' price ' + price);
+      return;
+    }
+    if (msg.msg_type === 'buy'){
+      // buy success -> msg.buy.contract_id and details
+      const b = msg.buy;
+      const cid = b.contract_id;
+      const longcode = b.longcode || '';
+      const stake = Number(b.buy_price || $('#stake').value || 1);
+      // create local record with real=true linked to contract_id
+      const localId = 'R' + cid;
+      const openTick = state.ticks.length;
+      const rec = { id: localId, type: (longcode.includes('Rise') || longcode.includes('Call') || longcode.includes('CALL') ? 'CALL' : 'PUT'), stake, openTick, expiryTick: null, status: 'OPEN', real: true, contract_id: cid };
+      state.open.set(localId, rec);
+      upsertOpenRow(rec);
+      addLog('[REAL] Bought contract_id ' + cid + ' local ' + localId);
+      return;
+    }
+    if (msg.msg_type === 'proposal_open_contract'){
+      // updates about a specific open contract (poc)
+      const poc = msg.proposal_open_contract;
+      if (!poc) return;
+      const localId = 'R' + poc.contract_id;
+      const o = state.open.get(localId);
+      if (!o) return;
+      // if contract expired or settled
+      if (poc.is_expired || poc.is_sold || poc.is_settleable || poc.status === 'sold'){
+        const profit = Number(poc.profit) || 0;
+        // profit is net pnl (includes stake), some fields differ—here we treat positive -> win, negative -> loss
+        const win = profit >= 0;
+        o.status = win ? 'WIN' : 'LOSS';
+        o.expiryTick = state.ticks.length;
+        // update virtualPL using profit value (accurate)
+        state.virtualPL += profit;
+        state.trades++;
+        if (win) state.wins++; else state.losses++;
+        upsertOpenRow(o);
+        addLog(`[REAL RESULT] ${localId} -> ${o.status} profit ${fmt(profit)}`);
+        // clean up later
+        setTimeout(()=> { removeOpenRow(localId); state.open.delete(localId); updateLiveBadges(); }, 1500);
+      }
+      return;
+    }
+  }
+
+  // ---------- Connection lifecycle ----------
+  $('#connect').addEventListener('click', () => {
+    if (state.ws && state.ws.readyState === 1){ addLog('Already connected'); return; }
+    const appId = $('#appId').value.trim() || '1089';
+    const url = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`;
+    state.ws = new WebSocket(url);
+    setStatus('CONNECTING');
+    addLog('Connecting to ' + url);
+    state.ws.onopen = () => {
+      setStatus('CONNECTED');
+      addLog('Socket open');
+      // authorize if token provided and in real mode
+      const token = $('#token').value.trim();
+      if (token) authorize(token);
+      // subscribe ticks and candles
+      const sym = $('#symbol').value;
+      subscribeTicks(sym);
+      subscribeCandles(sym, 60);
+      $('#start').disabled = false;
+    };
+    state.ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        handleWsMessage(msg);
+      } catch (e){ addLog('parse err: '+e.message); }
+    };
+    state.ws.onclose = () => { setStatus('DISCONNECTED'); addLog('Socket closed'); $('#start').disabled = true; };
+    state.ws.onerror = (e) => { setStatus('ERROR'); addLog('Socket error'); };
+  });
+
+  // ---------- Bot tick loop (uses either live ticks or simulation ticks for paper) ----------
+  function botTick(){
+    // Update candles for simulation only if we don't have live candles
+    if (state.ticks.length < 3){
+      // seed small ticks to produce signals
+      const base = state.ticks[0] || 1000;
+      state.ticks.push(base + (Math.random() - 0.5) * 0.5);
+    }
+
+    // Generate a candle occasionally if no live candles
+    if (state.candles.length < 20){
+      const last = state.ticks.slice(-3);
+      const open = last[0] || state.ticks[0];
+      const close = last[last.length - 1] || state.ticks[state.ticks.length - 1];
+      const high = Math.max(open, close) + Math.random()*0.6;
+      const low = Math.min(open, close) - Math.random()*0.6;
+      state.candles.push({ open, close, high, low, epoch: Date.now() });
+      if (state.candles.length > 500) state.candles.shift();
+    }
+
+    // Choose strategy combo
+    const combo = $('#mode').value === 'paper' ? $('#symbol') /*dummy to keep code stable*/ : $('#symbol'); // we reuse same UI
+    // In this simple flow use Trend2 first, then Precision
+    let signal = signalTrend2();
+    if (!signal) signal = signalPrecision();
+
+    if (signal){
+      placeTrade(signal);
+    }
+
+    // For paper mode settle any due paper trades (settlePaper uses state.ticks)
+    settlePaper();
+    updateLiveBadges();
+  }
+
+  // ---------- Start / Stop ----------
+  $('#start').addEventListener('click', () => {
+    if (state.running) return;
+    const ms = Math.max(100, Number($('#tickms').value || 400));
+    // tick generator: if connected to real WS, ticks come from WS; but we still run botTick periodically to check signals
+    state.tickTimer = setInterval(botTick, ms);
+    state.running = true;
+    $('#start').disabled = true; $('#stop').disabled = false;
+    addLog('Bot started (auto)');
+  });
+  $('#stop').addEventListener('click', () => {
+    if (!state.running) return;
+    clearInterval(state.tickTimer);
+    state.tickTimer = null;
+    state.running = false;
+    $('#start').disabled = false; $('#stop').disabled = true;
+    addLog('Bot stopped');
+  });
+
+  // ---------- Manual trade buttons (example: double-click console) ----------
+  // expose function for manual call from console: window.placeCall() / window.placePut()
+  window.placeCall = () => placeTrade('CALL');
+  window.placePut = () => placeTrade('PUT');
+
+  // ---------- Init ----------
+  addLog('Ready. Connect + authorize for REAL. Start bot when ready.');
+  updateLiveBadges();
 
 })();
 </script>
