@@ -1,221 +1,550 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Deriv PUT/CALL Advanced Strategy Bot</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#111; color:#eee; }
-    .panel { background:#222; padding:15px; margin:10px; border-radius:8px; }
-    button { padding:8px 12px; border:none; border-radius:6px; margin:4px; cursor:pointer; }
-    .start { background:green; color:#fff; }
-    .stop { background:red; color:#fff; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    td,th { border:1px solid #444; padding:4px; text-align:center; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Deriv Advanced PUT/CALL Bot — Full Config</title>
+<style>
+  :root{--bg:#071026;--card:#0b1b2a;--muted:#9fb4c8;--accent:#22d3ee;--ok:#22c55e}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg),#05101a);color:#e6eef6;padding:18px}
+  .wrap{max-width:1200px;margin:0 auto}
+  .card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);padding:14px;border-radius:10px;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+  input,select,button,textarea{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071827;color:#e6eef6;width:100%}
+  button.primary{background:linear-gradient(90deg,var(--accent),#3b82f6);border:0;color:#012;font-weight:700}
+  button.warning{background:#f59e0b;border:0;color:#071827}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04)}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left}
+  .log{height:360px;overflow:auto;background:#021021;padding:10px;border-radius:8px;font-family:ui-monospace,monospace}
+  .muted{color:var(--muted);font-size:13px}
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr)} }
+</style>
 </head>
 <body>
-  <h2>Deriv PUT/CALL Advanced Strategy Bot</h2>
-  
-  <div class="panel">
-    <label>Token: <input id="token" type="password" size="50"></label><br>
-    <label>App ID: <input id="app_id" value="1089"></label><br>
-    <label>Symbol: 
-      <select id="symbol">
-        <option value="R_100">R_100</option>
-        <option value="R_75">R_75</option>
-        <option value="R_50">R_50</option>
-      </select>
-    </label><br>
-    <label>Stake: <input id="stake" type="number" value="1"></label>
-    <label>Duration (ticks): <input id="duration" type="number" value="5"></label><br>
-    <label>Take Profit: <input id="tp" type="number" value="20"></label>
-    <label>Stop Loss: <input id="sl" type="number" value="20"></label><br>
-    <label>Cooldown (sec): <input id="cooldown" type="number" value="10"></label><br>
-    <label>Strategy:
-      <select id="strategy">
-        <option value="trend2">Trend2</option>
-        <option value="ema">EMA Cross</option>
-        <option value="rsi">RSI Momentum</option>
-        <option value="hybrid">Hybrid (2 of 3 confirm)</option>
-      </select>
-    </label><br>
-    <button class="start" onclick="startBot()">Start</button>
-    <button class="stop" onclick="stopBot()">Stop</button>
+<div class="wrap">
+  <h1>Deriv Advanced PUT/CALL Bot — Full Config</h1>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>App ID</label>
+        <input id="appId" value="1089" />
+      </div>
+      <div style="grid-column: span 2 / span 2;">
+        <label>API Token (required for REAL mode)</label>
+        <input id="token" placeholder="Paste Deriv API token" />
+      </div>
+      <div>
+        <label>Mode</label>
+        <select id="mode">
+          <option value="paper" selected>PAPER (Sim)</option>
+          <option value="real">REAL (Live)</option>
+        </select>
+      </div>
+      <div>
+        <label>Symbol</label>
+        <select id="symbol">
+          <option value="R_100">R_100</option>
+          <option value="R_75">R_75</option>
+          <option value="R_50">R_50</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Stake (USD)</label>
+        <input id="stake" type="number" min="0.35" step="0.01" value="1.00" />
+      </div>
+      <div>
+        <label>Duration (ticks) — max 20</label>
+        <input id="duration" type="number" min="1" max="20" value="5" />
+      </div>
+      <div>
+        <label>Payout % (paper only)</label>
+        <input id="payout" type="number" value="90" />
+      </div>
+      <div>
+        <label>Max Concurrent Contracts</label>
+        <input id="maxOpen" type="number" value="1" min="1" max="5" />
+      </div>
+
+      <div>
+        <label>Cooldown between orders (ms)</label>
+        <input id="cooldown" type="number" value="900" min="0" />
+      </div>
+      <div>
+        <label>Tick evaluation speed (ms)</label>
+        <input id="tickms" type="number" value="400" min="100" />
+      </div>
+      <div>
+        <label>Stop Loss ($)</label>
+        <input id="sl" type="number" value="-200" />
+      </div>
+      <div>
+        <label>Take Profit ($)</label>
+        <input id="tp" type="number" value="300" />
+      </div>
+
+      <div>
+        <label>Primary Strategy</label>
+        <select id="strategy">
+          <option value="trend2">Trend2 (2 ticks same direction)</option>
+          <option value="ema">EMA Cross (fast/slow)</option>
+          <option value="rsi">RSI Momentum</option>
+          <option value="hybrid" selected>Hybrid (confirm 2 of 3)</option>
+          <option value="random">Random (for testing)</option>
+        </select>
+      </div>
+      <div>
+        <label>EMA fast period</label>
+        <input id="emaFast" type="number" value="9" min="2"/>
+      </div>
+      <div>
+        <label>EMA slow period</label>
+        <input id="emaSlow" type="number" value="21" min="3"/>
+      </div>
+      <div>
+        <label>RSI period</label>
+        <input id="rsiPeriod" type="number" value="14" min="2"/>
+      </div>
+
+      <div style="grid-column: span 6 / span 6;">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="connectBtn" class="primary" style="width:140px">Connect</button>
+          <button id="startBtn" class="primary" style="width:140px" disabled>Start</button>
+          <button id="stopBtn" style="width:140px" disabled>Stop</button>
+          <div style="align-self:center"><span class="pill" id="connStatus">DISCONNECTED</span></div>
+          <div style="align-self:center;margin-left:auto" class="muted">No martingale — fixed stake</div>
+        </div>
+      </div>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      Strategy combo: Trend2 + EMA + RSI (Hybrid requires at least 2 of 3 strategies to agree). Paper mode simulates by comparing entry/exit ticks.
+    </div>
   </div>
-  
-  <div class="panel">
-    <h3>Status</h3>
-    <div id="status">Idle</div>
-    <div>P/L: <span id="pl">0</span> | Wins: <span id="wins">0</span> | Losses: <span id="losses">0</span></div>
-    <table id="log">
-      <tr><th>#</th><th>Contract</th><th>Result</th><th>Profit</th></tr>
-    </table>
+
+  <div class="card">
+    <strong>Live Stats</strong>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <div class="pill">Virtual P/L: $<span id="pl">0.00</span></div>
+      <div class="pill">Trades: <span id="trades">0</span></div>
+      <div class="pill">Open: <span id="openCount">0</span></div>
+      <div class="pill">Wins: <span id="wins">0</span></div>
+      <div class="pill">Losses: <span id="losses">0</span></div>
+      <div class="pill">Win% (paper): <span id="wr">0%</span></div>
+    </div>
   </div>
-  
+
+  <div class="card" style="display:grid;grid-template-columns:1fr 420px;gap:12px">
+    <div>
+      <strong>Open Contracts</strong>
+      <table id="openTable"><thead><tr><th>ID</th><th>Type</th><th>Stake</th><th>OpenTick</th><th>ExpiryTick</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div>
+      <strong>Log</strong>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+</div>
+
 <script>
-let ws, isRunning = false, authorized = false;
-let stake, duration, tp, sl, cooldown, strategy, symbol;
-let profit = 0, wins = 0, losses = 0, tradeCount = 0;
-let lastTick = null, prevTick = null, lastTradeTime = 0;
-let emaFast = null, emaSlow = null, rsiArr = [];
+(() => {
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
+  const addLog = (t) => { const el = $('#log'); el.textContent += new Date().toLocaleTimeString() + ' | ' + t + '\\n'; el.scrollTop = el.scrollHeight; };
+  const fmt = n => Number(n).toFixed(2);
 
-function startBot(){
-  if(isRunning) return;
-  const token = document.getElementById("token").value.trim();
-  const app_id = document.getElementById("app_id").value.trim();
-  if(!token){ alert("Enter token"); return; }
-  
-  stake = +document.getElementById("stake").value;
-  duration = +document.getElementById("duration").value;
-  tp = +document.getElementById("tp").value;
-  sl = +document.getElementById("sl").value;
-  cooldown = +document.getElementById("cooldown").value * 1000;
-  strategy = document.getElementById("strategy").value;
-  symbol = document.getElementById("symbol").value;
-  
-  ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${app_id}`);
-  ws.onopen = () => ws.send(JSON.stringify({authorize: token}));
-  ws.onmessage = onMsg;
-  isRunning = true;
-  document.getElementById("status").innerText = "Starting...";
-}
-
-function stopBot(){
-  isRunning = false;
-  if(ws) ws.close();
-  document.getElementById("status").innerText = "Stopped";
-}
-
-function onMsg(msg){
-  const data = JSON.parse(msg.data);
-
-  if(data.msg_type === "authorize"){ 
-    authorized = true;
-    document.getElementById("status").innerText = "Authorized, subscribing to ticks...";
-    ws.send(JSON.stringify({ticks: symbol, subscribe:1}));
-  }
-  
-  if(data.msg_type === "tick"){
-    prevTick = lastTick;
-    lastTick = data.tick.quote;
-    handleStrategy();
-  }
-  
-  if(data.msg_type === "proposal_open_contract"){
-    let poc = data.proposal_open_contract;
-    if(poc.is_sold){
-      tradeCount++;
-      if(poc.profit > 0){ wins++; profit += poc.profit; logTrade(poc.contract_id,"WIN",poc.profit); }
-      else { losses++; profit += poc.profit; logTrade(poc.contract_id,"LOSS",poc.profit); }
-      updateStats();
-      checkStop();
-    }
-  }
-}
-
-function handleStrategy(){
-  if(!prevTick) return;
-  let now = Date.now();
-  if(now - lastTradeTime < cooldown) return;
-  
-  let signal = null;
-  
-  if(strategy==="trend2"){
-    if(lastTick>prevTick && prevTick > (rsiArr.length? rsiArr[rsiArr.length-1]:prevTick)) signal="CALL";
-    if(lastTick<prevTick && prevTick < (rsiArr.length? rsiArr[rsiArr.length-1]:prevTick)) signal="PUT";
-  }
-  
-  if(strategy==="ema" || strategy==="hybrid"){
-    if(emaFast && emaSlow){
-      if(emaFast>emaSlow) signal="CALL";
-      else signal="PUT";
-    }
-  }
-  
-  if(strategy==="rsi" || strategy==="hybrid"){
-    if(rsiArr.length>=14){
-      let rsi = calcRSI(rsiArr,14);
-      if(rsi>55) signal="CALL";
-      else if(rsi<45) signal="PUT";
-    }
-  }
-  
-  if(strategy==="hybrid"){
-    // combine signals
-    let votes = [];
-    if(emaFast && emaSlow) votes.push(emaFast>emaSlow?"CALL":"PUT");
-    if(rsiArr.length>=14){
-      let rsi = calcRSI(rsiArr,14);
-      if(rsi>55) votes.push("CALL");
-      else if(rsi<45) votes.push("PUT");
-    }
-    if(lastTick>prevTick) votes.push("CALL"); else if(lastTick<prevTick) votes.push("PUT");
-    let calls=votes.filter(v=>v==="CALL").length;
-    let puts=votes.filter(v=>v==="PUT").length;
-    signal = calls>=2?"CALL":(puts>=2?"PUT":null);
-  }
-  
-  rsiArr.push(lastTick);
-  if(rsiArr.length>100) rsiArr.shift();
-  emaFast = emaCalc(emaFast,lastTick,10);
-  emaSlow = emaCalc(emaSlow,lastTick,20);
-  
-  if(signal){ placeTrade(signal); lastTradeTime = now; }
-}
-
-function placeTrade(type){
-  if(!authorized) return;
-  document.getElementById("status").innerText = "Proposing "+type;
-  ws.send(JSON.stringify({
-    proposal:1, amount:stake, basis:"stake", contract_type:type,
-    currency:"USD", duration:duration, duration_unit:"t", symbol:symbol
-  }));
-  ws.onmessage = (msg)=>{
-    const data = JSON.parse(msg.data);
-    if(data.msg_type==="proposal"){
-      ws.send(JSON.stringify({buy:data.proposal.id, price:stake}));
-    }
-    if(data.msg_type==="buy"){
-      ws.send(JSON.stringify({subscribe:1, proposal_open_contract:data.buy.contract_id}));
-    }
-    if(data.msg_type==="proposal_open_contract"){
-      onMsg(msg);
-    }
+  // ---------- State ----------
+  const state = {
+    ws: null,
+    isAuthorized: false,
+    ticks: [],
+    candles: [],
+    open: new Map(),
+    running: false,
+    virtualPL: 0,
+    trades: 0,
+    wins: 0,
+    losses: 0,
+    lastOrderTs: 0,
+    tickTimer: null,
+    awaitingProposal: null, // {type, stake, duration, requestedAt, backoff}
+    backoffMs: 500
   };
-}
 
-function emaCalc(prev,price,period){
-  if(prev===null) return price;
-  let k=2/(period+1);
-  return price*k+prev*(1-k);
-}
-
-function calcRSI(arr, period){
-  let gains=0, losses=0;
-  for(let i=1;i<=period;i++){
-    let diff=arr[arr.length-i]-arr[arr.length-i-1];
-    if(diff>=0) gains+=diff; else losses-=diff;
+  // ---------- UI updates ----------
+  function setConnStatus(txt, cls) {
+    const el = $('#connStatus'); el.textContent = txt;
+    if (cls) el.style.background = cls;
   }
-  let rs = gains/(losses||1);
-  return 100-100/(1+rs);
-}
+  function updateStatsUI(){
+    $('#pl').textContent = fmt(state.virtualPL);
+    $('#trades').textContent = state.trades;
+    $('#wins').textContent = state.wins;
+    $('#losses').textContent = state.losses;
+    $('#openCount').textContent = Array.from(state.open.values()).filter(x=>x.status==='OPEN').length;
+    $('#wr').textContent = state.trades ? ((100*state.wins/state.trades).toFixed(1)+'%') : '0%';
+  }
+  function upsertOpenRow(o){
+    const tbody = $('#openTable tbody');
+    const existing = document.getElementById('row-'+o.id);
+    const row = `<tr id="row-${o.id}"><td>${o.id}</td><td>${o.type}</td><td>$${fmt(o.stake)}</td><td>${o.openTick}</td><td>${o.expiryTick ?? '-'}</td><td>${o.status}</td></tr>`;
+    if (existing) existing.outerHTML = row; else tbody.insertAdjacentHTML('afterbegin', row);
+  }
+  function removeOpenRow(id){ const r = document.getElementById('row-'+id); if (r) r.remove(); }
 
-function updateStats(){
-  document.getElementById("pl").innerText = profit.toFixed(2);
-  document.getElementById("wins").innerText = wins;
-  document.getElementById("losses").innerText = losses;
-}
+  // ---------- Deriv WS helpers ----------
+  function send(obj){ try { if (state.ws && state.ws.readyState===1) state.ws.send(JSON.stringify(obj)); } catch(e){ addLog('send err: '+(e.message||e)); } }
+  function authorize(token){ send({ authorize: token }); }
+  function subscribeTicks(symbol){ send({ ticks: symbol, subscribe: 1 }); }
+  function subscribeCandles(symbol, granularity=60){ send({ ticks_history: symbol, count: 100, end:'latest', style:'candles', granularity, subscribe: 1 }); }
 
-function logTrade(id,res,p){
-  let row = document.createElement("tr");
-  row.innerHTML = `<td>${tradeCount}</td><td>${id}</td><td>${res}</td><td>${p.toFixed(2)}</td>`;
-  document.getElementById("log").appendChild(row);
-}
+  // ---------- Strategies ----------
+  // Trend2 : 2 consecutive tick moves
+  function signalTrend2(){ const n = state.ticks.length; if (n < 3) return null; const a = state.ticks[n-3], b = state.ticks[n-2], c = state.ticks[n-1]; if (b > a && c > b) return 'CALL'; if (b < a && c < b) return 'PUT'; return null; }
 
-function checkStop(){
-  if(tp && profit>=tp){ stopBot(); alert("TP reached"); }
-  if(sl && profit<=-sl){ stopBot(); alert("SL reached"); }
-}
+  // EMA series (simple in-memory streaming EMA)
+  function updateEMA(emaPrev, price, period){
+    if (emaPrev == null) return price;
+    const k = 2/(period+1);
+    return (price * k) + (emaPrev * (1-k));
+  }
+
+  // RSI helper (we keep a short close array and compute RSI simple)
+  function calcRSIFromCloses(closes, period){
+    if (!closes || closes.length <= period) return null;
+    let gains = 0, losses = 0;
+    for (let i = closes.length - period; i < closes.length; i++){
+      const diff = closes[i] - closes[i-1];
+      if (diff > 0) gains += diff; else losses -= diff;
+    }
+    if (losses === 0) return 100;
+    const rs = gains / losses;
+    return 100 - (100 / (1 + rs));
+  }
+
+  // Precision signals: EMA cross + RSI conditions
+  function signalEMA(emaFastVal, emaSlowVal){ if (emaFastVal == null || emaSlowVal == null) return null; return emaFastVal > emaSlowVal ? 'CALL' : 'PUT'; }
+  function signalRSI(rsiVal, upThresh=55, downThresh=45){ if (rsiVal == null) return null; if (rsiVal >= upThresh) return 'CALL'; if (rsiVal <= downThresh) return 'PUT'; return null; }
+
+  // Hybrid: require at least 2 of 3 signals to agree
+  function signalHybrid(s1, s2, s3){
+    const votes = [s1,s2,s3].filter(Boolean);
+    if (!votes.length) return null;
+    const calls = votes.filter(v => v==='CALL').length;
+    const puts = votes.filter(v => v==='PUT').length;
+    if (calls >= 2) return 'CALL';
+    if (puts >= 2) return 'PUT';
+    return null;
+  }
+
+  // ---------- Trade placement & paper settlement ----------
+  const CONTRACT_DURATION_MAX = 20;
+
+  function canPlace(){
+    const maxOpen = Number($('#maxOpen').value || 1);
+    const openCount = Array.from(state.open.values()).filter(o => o.status === 'OPEN').length;
+    if (openCount >= maxOpen) return false;
+    const cooldown = Number($('#cooldown').value || 900);
+    if (Date.now() - state.lastOrderTs < cooldown) return false;
+    return true;
+  }
+
+  function placePaper(type, stake, duration){
+    const id = 'P' + Math.random().toString(36).slice(2,9).toUpperCase();
+    const openTick = state.ticks.length;
+    const expiryTick = openTick + duration;
+    const rec = { id, type, stake, openTick, expiryTick, status:'OPEN', real:false };
+    state.open.set(id, rec);
+    upsertOpenRow(rec);
+    addLog(`[PAPER] OPEN ${id} ${type} stake ${fmt(stake)} ${duration}t`);
+    state.lastOrderTs = Date.now();
+  }
+
+  // Real: request proposal (we keep awaitingProposal to match incoming proposal and buy it)
+  function requestRealProposal(type, stake, duration){
+    const symbol = $('#symbol').value;
+    const proposal_req = {
+      proposal: 1,
+      amount: stake,
+      basis: 'stake',
+      contract_type: type,
+      currency: 'USD',
+      duration: duration,
+      duration_unit: 't',
+      symbol
+    };
+    state.awaitingProposal = { type, stake, duration, requestedAt: Date.now(), backoff: state.backoffMs };
+    send(proposal_req);
+    addLog('[REAL] proposal request sent for ' + type + ' ' + fmt(stake) + ' @' + duration + 't');
+    state.lastOrderTs = Date.now();
+  }
+
+  function placeTrade(type){
+    const dur = Math.min(CONTRACT_DURATION_MAX, Math.max(1, Number($('#duration').value || 5)));
+    const stake = Number($('#stake').value || 1);
+    if (!canPlace()){ addLog('Blocked: cooldown/max open'); return; }
+    if (dur > CONTRACT_DURATION_MAX){ addLog('Blocked: duration exceeds max'); return; }
+    if ($('#mode').value === 'paper'){ placePaper(type, stake, dur); return; }
+    // REAL
+    if (!state.isAuthorized){ addLog('Not authorized for REAL trades — authorize first'); return; }
+    // request proposal (single outstanding proposal enforced)
+    if (state.awaitingProposal){ addLog('Awaiting previous proposal — skipping'); return; }
+    requestRealProposal(type, stake, dur);
+  }
+
+  // PAPER settlement: deterministic compare entry vs exit ticks
+  function settlePaper(){
+    const n = state.ticks.length;
+    const payoutPct = Math.max(1, Number($('#payout').value || 90)) / 100;
+    for (const [id, rec] of Array.from(state.open.entries())){
+      if (rec.real) continue;
+      if (rec.status !== 'OPEN') continue;
+      if (n >= rec.expiryTick){
+        const entryIdx = Math.max(0, rec.openTick - 1);
+        const exitIdx = Math.max(0, rec.expiryTick - 1);
+        const entry = state.ticks[entryIdx] ?? state.ticks[0];
+        const exit = state.ticks[exitIdx] ?? state.ticks[state.ticks.length-1];
+        let win = false;
+        if (rec.type === 'CALL') win = exit > entry;
+        if (rec.type === 'PUT') win = exit < entry;
+        const pnl = win ? rec.stake * payoutPct : -rec.stake;
+        rec.status = win ? 'WIN' : 'LOSS';
+        state.virtualPL += pnl;
+        state.trades++; if (win) state.wins++; else state.losses++;
+        upsertOpenRow(rec);
+        addLog(`[PAPER RESULT] ${rec.id} ${rec.type} → ${rec.status} (${win?'+':''}${fmt(pnl)})`);
+        setTimeout(()=>{ removeOpenRow(rec.id); state.open.delete(rec.id); updateStats(); }, 1200);
+      }
+    }
+  }
+
+  // ---------- WebSocket message handler ----------
+  function onWsMessage(raw){
+    let msg;
+    try { msg = JSON.parse(raw); } catch(e){ addLog('WS parse err'); return; }
+    if (msg.error){ addLog('WS error: ' + (msg.error.message || JSON.stringify(msg.error))); return; }
+
+    // AUTH
+    if (msg.msg_type === 'authorize'){
+      state.isAuthorized = true;
+      addLog('Authorized: ' + (msg.authorize?.loginid || 'unknown'));
+      $('#startBtn').disabled = false;
+      setConnStatus('AUTHORIZED', 'linear-gradient(90deg,var(--accent),#3b82f6)');
+      return;
+    }
+
+    // Tick streaming
+    if (msg.msg_type === 'tick'){
+      const q = Number(msg.tick.quote);
+      state.ticks.push(q); if (state.ticks.length > 2000) state.ticks.shift();
+      // periodically generate pseudo-candle if needed
+      if (Math.random() < 0.18){
+        const open = state.ticks[state.ticks.length-3] || q;
+        const close = q;
+        const high = Math.max(open, close) + Math.random()*0.6;
+        const low = Math.min(open, close) - Math.random()*0.6;
+        state.candles.push({ open, close, high, low, epoch: msg.tick.epoch });
+        if (state.candles.length > 500) state.candles.shift();
+      }
+      // Check paper settlements
+      settlePaper();
+      return;
+    }
+
+    // Candles stream
+    if (msg.msg_type === 'candles'){
+      const cs = msg.candles.map(c => ({ open:Number(c.open), close:Number(c.close), high:Number(c.high), low:Number(c.low), epoch:c.epoch }));
+      if (cs.length) state.candles.push(cs[cs.length-1]);
+      if (state.candles.length > 500) state.candles.shift();
+      return;
+    }
+
+    // Proposal: when we requested a real proposal, we will buy it immediately
+    if (msg.msg_type === 'proposal'){
+      const prop = msg.proposal;
+      if (!prop) return;
+      // If awaitingProposal exists, buy the incoming proposal
+      if (state.awaitingProposal){
+        try {
+          // buy using ask_price
+          const buyReq = { buy: prop.id, price: Number(prop.ask_price) };
+          send(buyReq);
+          addLog('[REAL] Buying proposal id=' + prop.id + ' ask_price=' + prop.ask_price);
+          // clear awaitingProposal (we will track contract on buy response)
+          state.awaitingProposal = null;
+          state.backoffMs = 500; // reset backoff on success attempt
+        } catch(e){ addLog('Buy send failed: ' + e.message); }
+      } else {
+        addLog('Received unexpected proposal (ignored).');
+      }
+      return;
+    }
+
+    // Buy confirmation
+    if (msg.msg_type === 'buy'){
+      const b = msg.buy;
+      const cid = b.contract_id;
+      const localId = 'R' + cid;
+      const longcode = b.longcode || '';
+      const stake = Number(b.buy_price || $('#stake').value || 1);
+      const rec = { id: localId, type: (longcode.toUpperCase().includes('CALL') || longcode.toUpperCase().includes('RISE')) ? 'CALL' : 'PUT', stake, openTick: state.ticks.length, expiryTick: null, status:'OPEN', real:true, contract_id: cid };
+      state.open.set(localId, rec);
+      upsertOpenRow(rec);
+      addLog('[REAL] Bought contract -> local=' + localId + ' contract_id=' + cid);
+      // subscribe to contract updates
+      send({ proposal_open_contract: 1, contract_id: cid, subscribe: 1 });
+      return;
+    }
+
+    // Contract updates (proposal_open_contract)
+    if (msg.msg_type === 'proposal_open_contract'){
+      const poc = msg.proposal_open_contract;
+      if (!poc) return;
+      const localId = 'R' + poc.contract_id;
+      const rec = state.open.get(localId);
+      if (rec){
+        // When contract is settled/sold/expired, record result
+        if (poc.is_sold || poc.is_settleable || poc.is_expired){
+          const profit = Number(poc.profit || poc.sell_price || 0);
+          const win = profit >= 0;
+          rec.status = win ? 'WIN' : 'LOSS';
+          rec.expiryTick = state.ticks.length;
+          state.virtualPL += profit;
+          state.trades++; if (win) state.wins++; else state.losses++;
+          upsertOpenRow(rec);
+          addLog(`[REAL RESULT] ${localId} → ${rec.status} profit ${fmt(profit)}`);
+          setTimeout(()=>{ removeOpenRow(localId); state.open.delete(localId); updateStats(); }, 1500);
+        }
+      } else {
+        // Untracked poc — ignore or log
+        // addLog('Untracked POC update: ' + poc.contract_id);
+      }
+      return;
+    }
+
+    // Generic errors (sometimes proposal fails due to rate limits)
+    if (msg.error){
+      addLog('API Error: ' + JSON.stringify(msg.error));
+      // If we had an awaitingProposal, schedule backoff retry
+      if (state.awaitingProposal){
+        const ap = state.awaitingProposal;
+        addLog('Proposal failed — scheduling backoff ' + state.backoffMs + 'ms');
+        setTimeout(()=> {
+          // retry but only if still awaiting
+          if (state.awaitingProposal && state.awaitingProposal.requestedAt === ap.requestedAt){
+            state.backoffMs = Math.min(30000, state.backoffMs * 2);
+            requestRealProposal(ap.type, ap.stake, ap.duration);
+            state.awaitingProposal.backoff = state.backoffMs;
+          }
+        }, state.backoffMs);
+      }
+    }
+  }
+
+  // ---------- Bot evaluation loop ----------
+  // We'll compute EMA and RSI streaming values for signals
+  let emaFastVal = null, emaSlowVal = null;
+  const closes = []; // closing prices for RSI
+
+  function evaluateAndTrade(){
+    // Ensure we have ticks
+    if (state.ticks.length < 3) return;
+
+    // Update EMA/RSI from latest tick (and pseudo-candle close if available)
+    const price = state.ticks[state.ticks.length - 1];
+    const emaFastPeriod = Math.max(2, Number($('#emaFast').value || 9));
+    const emaSlowPeriod = Math.max(3, Number($('#emaSlow').value || 21));
+    emaFastVal = updateEMA(emaFastVal, price, emaFastPeriod);
+    emaSlowVal = updateEMA(emaSlowVal, price, emaSlowPeriod);
+
+    closes.push(price);
+    if (closes.length > 500) closes.shift();
+    const rsiPeriod = Math.max(2, Number($('#rsiPeriod').value || 14));
+    const rsi = calcRSIFromCloses(closes, rsiPeriod);
+
+    // Generate base signals
+    const sTrend = signalTrend2();
+    const sEMA = signalEMA(emaFastVal, emaSlowVal);
+    const sRSI = signalRSI(rsi);
+
+    // Decide composite signal based on strategy
+    const strat = $('#strategy').value;
+    let finalSignal = null;
+    if (strat === 'trend2') finalSignal = sTrend;
+    else if (strat === 'ema') finalSignal = sEMA;
+    else if (strat === 'rsi') finalSignal = sRSI;
+    else if (strat === 'random') { if (Math.random() < 0.01) finalSignal = Math.random() < 0.5 ? 'CALL' : 'PUT'; }
+    else if (strat === 'hybrid') finalSignal = signalHybrid(sTrend, sEMA, sRSI);
+
+    if (finalSignal){
+      // perform single-trade guard and placement
+      placeTrade(finalSignal);
+    }
+
+    // Keep paper settlement updated
+    settlePaper();
+    updateStats();
+
+    // TP/SL checks (virtual PL only)
+    const tp = Number($('#tp').value || 0);
+    const sl = Number($('#sl').value || 0);
+    if (tp && state.virtualPL >= tp){ stopAgent(); addLog('Take Profit reached — stopped'); }
+    if (sl && state.virtualPL <= sl){ stopAgent(); addLog('Stop Loss reached — stopped'); }
+  }
+
+  function updateStats(){
+    updateStatsUI();
+  }
+
+  // ---------- Control: Connect / Start / Stop ----------
+  $('#connectBtn').addEventListener('click', () => {
+    if (state.ws && state.ws.readyState === 1){ addLog('Already connected'); return; }
+    const appId = $('#appId').value.trim() || '1089';
+    const url = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`;
+    state.ws = new WebSocket(url);
+    setConnStatus('CONNECTING');
+    addLog('Connecting to ' + url);
+    state.ws.onopen = () => { setConnStatus('CONNECTED'); addLog('Socket open'); const token = $('#token').value.trim(); if (token) authorize(token); subscribeTicks($('#symbol').value); subscribeCandles($('#symbol').value, 60); };
+    state.ws.onmessage = ev => onWsMessage(ev.data);
+    state.ws.onclose = () => { setConnStatus('DISCONNECTED'); addLog('Socket closed'); $('#startBtn').disabled = true; state.isAuthorized = false; };
+    state.ws.onerror = (e) => { setConnStatus('ERROR'); addLog('Socket error'); console.error(e); };
+  });
+
+  $('#startBtn').addEventListener('click', () => {
+    if ($('#mode').value === 'real' && !state.isAuthorized){ addLog('Please authorize before starting in REAL mode'); return; }
+    startAgent();
+  });
+  $('#stopBtn').addEventListener('click', stopAgent);
+
+  function startAgent(){
+    if (state.running) return;
+    const ms = Math.max(100, Number($('#tickms').value || 400));
+    state.tickTimer = setInterval(evaluateAndTrade, ms);
+    state.running = true;
+    $('#startBtn').disabled = true; $('#stopBtn').disabled = false;
+    addLog('Bot started (auto)');
+  }
+  function stopAgent(){
+    if (!state.running) return;
+    clearInterval(state.tickTimer);
+    state.tickTimer = null;
+    state.running = false;
+    $('#startBtn').disabled = false; $('#stopBtn').disabled = true;
+    addLog('Bot stopped');
+  }
+
+  // ---------- Expose manual helpers (console) ----------
+  window.placeCall = () => placeTrade('CALL');
+  window.placePut = () => placeTrade('PUT');
+
+  // ---------- Init UI ----------
+  setConnStatus('DISCONNECTED');
+  addLog('Ready. Connect and (optionally) authorize. Start in PAPER first for testing.');
+
+  // ---------- End IIFE ----------
+})();
 </script>
 </body>
 </html>
